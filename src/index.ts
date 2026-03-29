@@ -3,8 +3,10 @@ import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
 import { createServer } from "node:http";
+import swaggerUi from "swagger-ui-express";
 import { initSocket } from "./lib/socket/server";
 import { connectDB } from "./lib/utils/db";
+import { swaggerSpec } from "./lib/utils/swagger";
 import UserRoutes from "./routes/user.routes";
 import ChatRoutes from "./routes/chat.routes";
 import MessageRoutes from "./routes/message.routes";
@@ -25,6 +27,13 @@ app.use(
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger docs
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api/docs.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 // Routes
 app.use("/api/user", UserRoutes);
