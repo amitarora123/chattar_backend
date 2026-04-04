@@ -1,6 +1,6 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
-export const sendEmail = async ({
+async function sendEmail({
   to,
   subject,
   html,
@@ -8,10 +8,10 @@ export const sendEmail = async ({
   to: string;
   subject: string;
   html: string;
-}) => {
+}) {
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       port: 587,
       secure: false, // true only for 465
       auth: {
@@ -29,11 +29,10 @@ export const sendEmail = async ({
   } catch (error) {
     console.log(error);
   }
-};
+}
 
-
-export const sendOtp = async (to: string, otp: string) => {
-  const subject = 'Verify Your Email';
+export async function sendOtp(to: string, otp: string) {
+  const subject = "Verify Your Email";
 
   const html = `
   <!DOCTYPE html>
@@ -46,7 +45,7 @@ export const sendOtp = async (to: string, otp: string) => {
       <tr>
         <td align="center">
           <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; padding:40px; box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-            
+
             <tr>
               <td align="center" style="padding-bottom:20px;">
                 <h2 style="margin:0; color:#333;">Email Verification</h2>
@@ -105,15 +104,11 @@ export const sendOtp = async (to: string, otp: string) => {
   </html>
   `;
 
-  await sendEmail({
-    to,
-    subject,
-    html,
-  });
-};
+  await sendEmail({ to, subject, html });
+}
 
-export const sendResetPasswordEmail = async (to: string, resetUrl: string) => {
-  const subject = 'Reset Your Password';
+export async function sendResetPasswordEmail(to: string, resetUrl: string) {
+  const subject = "Reset Your Password";
 
   const html = `
   <!DOCTYPE html>
@@ -126,7 +121,7 @@ export const sendResetPasswordEmail = async (to: string, resetUrl: string) => {
       <tr>
         <td align="center">
           <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; padding:40px; box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-            
+
             <tr>
               <td align="center" style="padding-bottom:20px;">
                 <h2 style="margin:0; color:#333;">Reset Your Password</h2>
@@ -164,7 +159,7 @@ export const sendResetPasswordEmail = async (to: string, resetUrl: string) => {
 
             <tr>
               <td align="center" style="padding-top:20px; color:#777; font-size:13px;">
-                If the button doesn’t work, copy and paste this link into your browser:
+                If the button doesn't work, copy and paste this link into your browser:
                 <br/>
                 <span style="color:#3b5bdb; word-break:break-all;">
                   ${resetUrl}
@@ -195,9 +190,5 @@ export const sendResetPasswordEmail = async (to: string, resetUrl: string) => {
   </html>
   `;
 
-  await sendEmail({
-    to,
-    subject,
-    html,
-  });
-};
+  await sendEmail({ to, subject, html });
+}

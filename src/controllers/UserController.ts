@@ -4,14 +4,15 @@ import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import User, { IUser } from "@/models/User";
 import { Contacts } from "@/models/Contact";
+import mongoose from "mongoose";
 import {
   generateUniqueUsername,
   generateOtp,
   generateExpiresIn,
   getSecondsLeft,
-} from "@/lib/service/user";
-import { sendOtp, sendResetPasswordEmail } from "@/lib/service/emailService";
-import mongoose from "mongoose";
+  createUser,
+} from "@/services/UserService";
+import { sendOtp, sendResetPasswordEmail } from "@/services/EmailService";
 
 const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
 
@@ -26,22 +27,7 @@ export const signup = async (req: Request, res: Response) => {
         .json({ message: "password must be at least 6 chars" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const otpCode = generateOtp().toString();
-    const expiresIn = generateExpiresIn(5);
-
-    const user: IUser = await User.create({
-      username,
-      email,
-      password: hashedPassword,
-      otp: {
-        code: otpCode,
-        expiresIn,
-        resendAvailableAt: new Date(Date.now() + 60 * 1000),
-      },
-    });
-
-    sendOtp(email, otpCode);
+    const user = await createUser({ username, email, password });
 
     return res.status(201).json({
       username,
@@ -53,7 +39,9 @@ export const signup = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error registering user:", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
   }
 };
 
@@ -85,7 +73,9 @@ export const login = async (req: Request, res: Response) => {
       expiresIn: "7d",
     });
 
-    return res.status(201).json({ ...userDetails, token, avatar_url: user.avatar_url });
+    return res
+      .status(201)
+      .json({ ...userDetails, token, avatar_url: user.avatar_url });
   } catch (error) {
     console.log("Login Error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -144,7 +134,9 @@ export const googleLogin = async (req: Request, res: Response) => {
       expiresIn: "7d",
     });
 
-    return res.status(200).json({ token, ...userDetails, avatar_url: user.avatar_url });
+    return res
+      .status(200)
+      .json({ token, ...userDetails, avatar_url: user.avatar_url });
   } catch (error) {
     console.error("Google login error:", error);
     return res.status(401).json({ message: "Authentication failed" });
@@ -187,7 +179,9 @@ export const forgotPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error in forgot-password:", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
   }
 };
 
@@ -233,7 +227,9 @@ export const resetPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error in reset-password:", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
   }
 };
 
@@ -243,7 +239,12 @@ export const verifyUser = async (req: Request, res: Response) => {
     const { user_id } = req.params;
     const { otp }: { otp: string } = req.body;
 
-    if (!user_id || !mongoose.isValidObjectId(user_id) || !otp || otp.length !== 6) {
+    if (
+      !user_id ||
+      !mongoose.isValidObjectId(user_id) ||
+      !otp ||
+      otp.length !== 6
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -271,7 +272,9 @@ export const verifyUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error verifying user:", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
   }
 };
 
@@ -311,7 +314,9 @@ export const resendOtp = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error resending otp:", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
   }
 };
 
@@ -331,7 +336,9 @@ export const searchUsers = async (req: Request, res: Response) => {
       query.email = { $regex: `^${email}`, $options: "i" };
     }
 
-    const users = await User.find(query).select("_id username avatar_url").lean();
+    const users = await User.find(query)
+      .select("_id username avatar_url")
+      .lean();
 
     let contactMap: Map<string, string> = new Map();
 
@@ -357,7 +364,9 @@ export const searchUsers = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error Searching Users:", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
   }
 };
 
@@ -371,8 +380,6 @@ export const checkUsername = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error while fetching username:", error);
     const { message } = error as { message: string };
-    return res
-      .status(500)
-      .json({ message: message || "Something Went Wrong" });
+    return res.status(500).json({ message: message || "Something Went Wrong" });
   }
 };
