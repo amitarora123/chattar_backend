@@ -6,6 +6,7 @@ import {
   getChatById,
   getChatMessages,
   clearChat,
+  getRecipientInfo,
 } from "@/controllers/ChatController";
 
 const ChatRoutes = Router();
@@ -86,6 +87,67 @@ ChatRoutes.post("/group", createGroup);
 
 /**
  * @openapi
+ * /api/chats/recipient/{recipient_id}:
+ *   get:
+ *     tags: [Chats]
+ *     summary: Get recipient info by user ID
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: recipient_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Recipient info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     display_name:
+ *                       type: string
+ *                       nullable: true
+ *                     avatar_url:
+ *                       type: string
+ *                       nullable: true
+ *                     last_seen:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     is_active:
+ *                       type: boolean
+ *                 isContact:
+ *                   type: boolean
+ *                 contactName:
+ *                   type: string
+ *                   nullable: true
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Recipient not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+ChatRoutes.get("/recipient/:recipient_id", getRecipientInfo);
+
+/**
+ * @openapi
  * /api/chats/{chat_id}:
  *   get:
  *     tags: [Chats]
@@ -144,6 +206,11 @@ ChatRoutes.get("/:chat_id", getChatById);
  *         schema:
  *           type: integer
  *           default: 50
+ *       - in: query
+ *         name: recipient_id
+ *         schema:
+ *           type: string
+ *         description: User ID of the recipient (used to resolve chat when chat_id is unknown)
  *     responses:
  *       200:
  *         description: List of messages

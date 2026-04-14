@@ -9,8 +9,13 @@ import {
   resendOtp,
   searchUsers,
   checkUsername,
+  updateCurrentUser,
+  getCurrentUser,
 } from "@/controllers/UserController";
-import { optionalAuthMiddleware } from "@/middleware/auth.middleware";
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+} from "@/middleware/auth.middleware";
 
 const UserRoutes = Router();
 
@@ -23,7 +28,7 @@ const UserRoutes = Router();
 
 /**
  * @openapi
- * /api/user:
+ * /api/user/sign-up:
  *   post:
  *     tags: [User]
  *     summary: Sign up a new user
@@ -53,7 +58,7 @@ const UserRoutes = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/", signup);
+UserRoutes.post("/sign-up", signup);
 
 /**
  * @openapi
@@ -172,11 +177,11 @@ UserRoutes.post("/forgot-password", forgotPassword);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [token, password]
+ *             required: [token, newPassword]
  *             properties:
  *               token:
  *                 type: string
- *               password:
+ *               newPassword:
  *                 type: string
  *     responses:
  *       200:
@@ -300,4 +305,67 @@ UserRoutes.get("/unique/:username", checkUsername);
  */
 UserRoutes.get("/search", optionalAuthMiddleware, searchUsers);
 
+/**
+ * @openapi
+ * /api/user/me:
+ *   patch:
+ *     tags: [User]
+ *     summary: Update current user
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - avatar_url
+ *               - is_active
+ *             properties:
+ *               name:
+ *                 type: string
+ *               avatar_url:
+ *                 type: string
+ *               is_active:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 success:
+ *                   type: boolean
+ */
+UserRoutes.patch("/me", authMiddleware, updateCurrentUser);
+
+/**
+ * @openapi
+ * /api/user/me:
+ *   get:
+ *     tags: [User]
+ *     summary: Get current user information
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+UserRoutes.get("/me", authMiddleware, getCurrentUser);
 export default UserRoutes;

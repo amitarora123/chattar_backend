@@ -383,3 +383,47 @@ export const checkUsername = async (req: Request, res: Response) => {
     return res.status(500).json({ message: message || "Something Went Wrong" });
   }
 };
+
+export const updateCurrentUser = async (req: Request, res: Response) => {
+  const { name, avatar_url, is_active } = req.body;
+  const { _id } = req.authUser || {};
+
+  console.log(name, avatar_url, is_active);
+
+  try {
+    await User.findByIdAndUpdate(_id, {
+      display_name: name,
+      avatar_url,
+      is_active,
+    });
+
+    return res.status(200).json({
+      message: "details updated successfully",
+      success: true,
+    });
+  } catch (error) {
+    const { message } = error as { message: string };
+
+    console.log("Error updating user:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: message || "Internal Server Error",
+    });
+  }
+};
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+  const { _id } = req.authUser!;
+
+  try {
+    const user = await User.findById(_id).select(
+      "-password -otp -password_reset",
+    );
+    return res.json(user);
+  } catch (error) {
+    console.log("Error while fetching current user: ", error);
+    const { message } = error as { message: string };
+    return res.status(500).json({ message: message || "Something Went wrong" });
+  }
+};

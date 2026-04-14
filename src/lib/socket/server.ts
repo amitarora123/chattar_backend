@@ -22,7 +22,12 @@ export const initSocket = (server: HTTPServer) => {
     ServerToClientEvents,
     InterServerEvents,
     SocketData
-  >(server);
+  >(server, {
+    cors: {
+      origin: process.env.FRONTEND_URL,
+      credentials: true,
+    },
+  });
 
   return io;
 };
@@ -42,6 +47,8 @@ export const registerSocketHandlers = (io: IOType): void => {
       console.log("No userId provided");
       return;
     }
+
+    console.log("socket connected", userId);
 
     if (!onlineUsers.has(userId)) {
       onlineUsers.set(userId, new Set());

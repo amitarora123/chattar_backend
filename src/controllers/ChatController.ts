@@ -5,6 +5,7 @@ import {
   getChatById as getChatByIdService,
   getChatMessages as getChatMessagesService,
   clearChat as clearChatService,
+  getRecipientInfo as getRecipientInfoService,
 } from "@/services/ChatService";
 
 // GET /api/chats/me
@@ -93,6 +94,28 @@ export const getChatMessages = async (req: Request, res: Response) => {
     return res.status(200).json(result);
   } catch (error) {
     console.log("Error fetching messages:", error);
+    const { message } = error as { message: string };
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
+  }
+};
+
+// GET /api/chats/recipient/:recipient_id
+export const getRecipientInfo = async (req: Request, res: Response) => {
+  try {
+    const result = await getRecipientInfoService(
+      req.params.recipient_id as string,
+      req.authUser!,
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: "Recipient not found" });
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Recipient Info Fetch Error:", error);
     const { message } = error as { message: string };
     return res
       .status(500)

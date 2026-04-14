@@ -336,6 +336,34 @@ export async function getChatMessages(
   });
 }
 
+export async function getRecipientInfo(
+  recipient_id: string,
+  authUser: { _id: string },
+) {
+  const user = await (await import("@/models/User")).default
+    .findById(recipient_id)
+    .select("_id username display_name avatar_url last_seen is_active")
+    .lean();
+
+  if (!user) return null;
+
+  const contactMap = await buildContactMap(authUser._id);
+  const userId = user._id.toString();
+
+  return {
+    user: {
+      _id: userId,
+      username: user.username,
+      display_name: user.display_name ?? null,
+      avatar_url: user.avatar_url ?? null,
+      last_seen: user.last_seen ?? null,
+      is_active: user.is_active,
+    },
+    isContact: contactMap.has(userId),
+    contactName: contactMap.get(userId) ?? null,
+  };
+}
+
 export async function clearChat(
   chat_id: string,
   recipient_id: string | undefined,
