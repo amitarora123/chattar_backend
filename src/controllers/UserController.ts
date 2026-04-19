@@ -62,11 +62,26 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid Credentials" });
     }
 
+    if (!user.isVerified) {
+      const otp = generateOtp().toString();
+      user.otp = {
+        code: otp,
+        expiresIn: new Date(generateExpiresIn(5)),
+        resendAvailableAt: new Date(Date.now() + 60 * 1000),
+      };
+      await user.save();
+      sendOtp(user.email, otp);
+      return res.status(200).json({
+        message: "User not Verified Please Verify your account",
+        requiresVerification: true,
+        user: { user_id: user._id, email: user.email },
+      });
+    }
+
     const userDetails = {
       _id: user._id,
       username: user.username,
       email: user.email,
-      isVerified: user.isVerified,
     };
 
     const token = jwt.sign(userDetails, process.env.JWT_SECRET!, {
@@ -74,7 +89,7 @@ export const login = async (req: Request, res: Response) => {
     });
 
     return res
-      .status(201)
+      .status(200)
       .json({ ...userDetails, token, avatar_url: user.avatar_url });
   } catch (error) {
     console.log("Login Error:", error);
@@ -127,7 +142,6 @@ export const googleLogin = async (req: Request, res: Response) => {
       _id: user._id,
       username: user.username,
       email: user.email,
-      isVerified: user.isVerified,
     };
 
     const token = jwt.sign(userDetails, process.env.JWT_SECRET!, {

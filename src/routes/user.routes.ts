@@ -80,23 +80,50 @@ UserRoutes.post("/sign-up", signup);
  *                 type: string
  *     responses:
  *       200:
- *         description: Login successful, returns JWT token
+ *         description: Account not verified — OTP sent, verification required before proceeding
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User not Verified Please Verify your account
+ *                 requiresVerification:
+ *                   type: boolean
+ *                   example: true
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *       201:
+ *         description: Login successful — returns JWT token and user details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
  *                 token:
  *                   type: string
- *                 user:
- *                   $ref: '#/components/schemas/User'
- *       401:
+ *                 avatar_url:
+ *                   type: string
+ *       400:
  *         description: Invalid credentials
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+
 UserRoutes.post("/login", login);
 
 /**

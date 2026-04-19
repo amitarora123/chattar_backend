@@ -1,3 +1,4 @@
+import { AuthUser } from "@/types/user.types";
 import { Request, NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 
