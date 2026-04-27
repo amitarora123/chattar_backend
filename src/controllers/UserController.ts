@@ -20,11 +20,10 @@ import BlockedToken from "@/models/BlockedToken";
 
 const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
 
-const isProd = process.env.NODE_ENV === "production";
 const cookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: false,
-  sameSite: isProd ? "none" : "lax",
+  secure: true,
+  sameSite: "none",
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
@@ -475,9 +474,9 @@ export const logout = async (req: Request, res: Response) => {
 
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? "none" : "lax",
-      path: "/api/user/refresh",
+      secure: true,
+      sameSite: "none",
+      path: "/",
     });
 
     return res.status(200).json({ message: "Logged out successfully" });
