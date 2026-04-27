@@ -23,7 +23,7 @@ const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
 const isProd = process.env.NODE_ENV === "production";
 const cookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: isProd,
+  secure: false,
   sameSite: isProd ? "none" : "lax",
   path: "/",
   maxAge: 7 * 24 * 60 * 60 * 1000,
