@@ -114,6 +114,7 @@ export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { id_token } = req.body;
 
+    console.log(id_token);
     if (!id_token) {
       return res.status(400).json({ message: "ID token is required" });
     }
@@ -165,7 +166,10 @@ export const googleLogin = async (req: Request, res: Response) => {
       .json({ accessToken, ...userDetails, avatar_url: user.avatar_url });
   } catch (error) {
     console.error("Google login error:", error);
-    return res.status(401).json({ message: "Authentication failed" });
+    const { message } = error as { message: string };
+    return res
+      .status(401)
+      .json({ message: message || "Authentication failed" });
   }
 };
 
