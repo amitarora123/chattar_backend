@@ -1,6 +1,5 @@
-import { Request, Response } from "express";
+import { CookieOptions, Request, Response } from "express";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import User, { IUser } from "@/models/User";
 import { Contacts } from "@/models/Contact";
@@ -11,10 +10,23 @@ import {
   generateExpiresIn,
   getSecondsLeft,
   createUser,
+  generateRefreshToken,
+  generateAccessToken,
 } from "@/services/UserService";
 import { sendOtp, sendResetPasswordEmail } from "@/services/EmailService";
+import jwt from "jsonwebtoken";
+import { AuthUser } from "@/types/user.types";
+import BlockedToken from "@/models/BlockedToken";
 
 const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
+
+const cookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production" ? true : false,
+  sameSite: "none",
+  path: "/api/user/refresh",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 // POST /api/user
 export const signup = async (req: Request, res: Response) => {
@@ -79,18 +91,18 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const userDetails = {
-      _id: user._id,
+      _id: user._id.toString(),
       username: user.username,
       email: user.email,
     };
 
-    const token = jwt.sign(userDetails, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    });
+    const refreshToken = generateRefreshToken(userDetails);
+    const accessToken = generateAccessToken(userDetails);
 
     return res
+      .cookie("refreshToken", refreshToken, cookieOptions)
       .status(200)
-      .json({ ...userDetails, token, avatar_url: user.avatar_url });
+      .json({ ...userDetails, accessToken, avatar_url: user.avatar_url });
   } catch (error) {
     console.log("Login Error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -144,13 +156,13 @@ export const googleLogin = async (req: Request, res: Response) => {
       email: user.email,
     };
 
-    const token = jwt.sign(userDetails, process.env.JWT_SECRET!, {
-      expiresIn: "7d",
-    });
+    const refreshToken = generateRefreshToken(userDetails);
+    const accessToken = generateAccessToken(userDetails);
 
     return res
+      .cookie("refreshToken", refreshToken, cookieOptions)
       .status(200)
-      .json({ token, ...userDetails, avatar_url: user.avatar_url });
+      .json({ accessToken, ...userDetails, avatar_url: user.avatar_url });
   } catch (error) {
     console.error("Google login error:", error);
     return res.status(401).json({ message: "Authentication failed" });
@@ -171,7 +183,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     if (user) {
       const expiresIn = generateExpiresIn(15);
       const token = jwt.sign({ user_id: user._id }, process.env.JWT_SECRET!, {
-        expiresIn,
+        expiresIn: "15m",
       });
 
       user.password_reset = {
@@ -437,6 +449,71 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     return res.json(user);
   } catch (error) {
     console.log("Error while fetching current user: ", error);
+    const { message } = error as { message: string };
+    return res.status(500).json({ message: message || "Something Went wrong" });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const accessToken = (req.headers["authorization"] as string)?.split(" ")[1];
+
+    if (accessToken) {
+      const decoded = jwt.decode(accessToken) as { exp?: number } | null;
+      if (decoded?.exp) {
+        await BlockedToken.create({
+          token: accessToken,
+          expiresAt: new Date(decoded.exp * 1000),
+        });
+      }
+    }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+      path: "/api/user/refresh",
+    });
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.log("Logout error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies["refreshToken"];
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        message: "Invalid Refresh Token",
+      });
+    }
+
+    const decodedToken = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET!,
+    ) as AuthUser;
+
+    if (!decodedToken) {
+      return res.status(400).json({
+        message: "Invalid Refresh Token",
+      });
+    }
+
+    const accessToken = generateAccessToken({
+      _id: decodedToken._id,
+      email: decodedToken.email,
+      username: decodedToken.username,
+    });
+
+    return res.status(200).json({
+      accessToken,
+    });
+  } catch (error) {
+    console.log("Error while Refreshing Token: ", error);
     const { message } = error as { message: string };
     return res.status(500).json({ message: message || "Something Went wrong" });
   }

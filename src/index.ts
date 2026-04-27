@@ -12,6 +12,7 @@ import ChatRoutes from "./routes/chat.routes";
 import MessageRoutes from "./routes/message.routes";
 import ContactRoutes from "./routes/contact.routes";
 import CloudinaryRoutes from "./routes/cloudinary.routes";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 const PORT = process.env.PORT || 8000;
@@ -23,6 +24,8 @@ app.use(
     origin: process.env.FRONTEND_URL,
   }),
 );
+
+app.use(cookieParser());
 
 app.use(morgan("dev"));
 app.use(express.json());

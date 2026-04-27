@@ -11,6 +11,8 @@ import {
   checkUsername,
   updateCurrentUser,
   getCurrentUser,
+  refreshAccessToken,
+  logout,
 } from "@/controllers/UserController";
 import {
   authMiddleware,
@@ -395,4 +397,9 @@ UserRoutes.patch("/me", authMiddleware, updateCurrentUser);
  *               $ref: '#/components/schemas/Error'
  */
 UserRoutes.get("/me", authMiddleware, getCurrentUser);
+
+UserRoutes.post("/refresh", refreshAccessToken);
+
+UserRoutes.post("/logout", logout);
+
 export default UserRoutes;

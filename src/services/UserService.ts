@@ -2,6 +2,8 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User, { IUser } from "@/models/User";
 import { sendOtp } from "@/services/EmailService";
+import jwt from "jsonwebtoken";
+import { AuthUser } from "@/types/user.types";
 
 interface CreateUserBody {
   username: string;
@@ -61,4 +63,23 @@ export async function createUser({
   sendOtp(email, otpCode);
 
   return user;
+}
+
+export function generateRefreshToken(userDetails: AuthUser) {
+  const refreshToken = jwt.sign(
+    userDetails,
+    process.env.REFRESH_TOKEN_SECRET!,
+    {
+      expiresIn: "7d",
+    },
+  );
+  return refreshToken;
+}
+
+export function generateAccessToken(userDetails: AuthUser) {
+  const accessToken = jwt.sign(userDetails, process.env.ACCESS_TOKEN_SECRET!, {
+    expiresIn: "5m",
+  });
+
+  return accessToken;
 }
