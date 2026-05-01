@@ -256,7 +256,7 @@ UserRoutes.post("/reset-password", resetPassword);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/verify/:user_id", verifyUser);
+UserRoutes.post("/verify", verifyUser);
 
 /**
  * @openapi

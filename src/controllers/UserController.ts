@@ -266,19 +266,15 @@ export const resetPassword = async (req: Request, res: Response) => {
 // POST /api/user/verify/:user_id
 export const verifyUser = async (req: Request, res: Response) => {
   try {
-    const { user_id } = req.params;
-    const { otp }: { otp: string } = req.body;
+    const { otp, email }: { otp: string; email: string } = req.body;
 
-    if (
-      !user_id ||
-      !mongoose.isValidObjectId(user_id) ||
-      !otp ||
-      otp.length !== 6
-    ) {
+    if (!email || !otp || otp.length !== 6) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const user = (await User.findById(user_id)) as IUser;
+    const user = (await User.findOne({
+      email,
+    })) as IUser;
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -311,9 +307,11 @@ export const verifyUser = async (req: Request, res: Response) => {
 // POST /api/user/resend-otp/:user_id
 export const resendOtp = async (req: Request, res: Response) => {
   try {
-    const { user_id } = req.params;
+    const { email } = req.body;
 
-    const user: IUser | null = await User.findById(user_id);
+    const user: IUser | null = await User.findOne({
+      email,
+    });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
