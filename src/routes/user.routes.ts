@@ -280,7 +280,7 @@ UserRoutes.post("/verify", verifyUser);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/resend-otp/:user_id", resendOtp);
+UserRoutes.post("/resend-otp", resendOtp);
 
 /**
  * @openapi
