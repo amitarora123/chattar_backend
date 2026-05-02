@@ -3,7 +3,6 @@ import bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 import User, { IUser } from "@/models/User";
 import { Contacts } from "@/models/Contact";
-import mongoose from "mongoose";
 import {
   generateUniqueUsername,
   generateOtp,
@@ -19,14 +18,6 @@ import { AuthUser } from "@/types/user.types";
 import BlockedToken from "@/models/BlockedToken";
 
 const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
-
-const cookieOptions: CookieOptions = {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  path: "/",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-};
 
 // POST /api/user
 export const signup = async (req: Request, res: Response) => {
@@ -99,10 +90,12 @@ export const login = async (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(userDetails);
     const accessToken = generateAccessToken(userDetails);
 
-    return res
-      .cookie("refreshToken", refreshToken, cookieOptions)
-      .status(200)
-      .json({ ...userDetails, accessToken, avatar_url: user.avatar_url });
+    return res.status(200).json({
+      ...userDetails,
+      refreshToken,
+      accessToken,
+      avatar_url: user.avatar_url,
+    });
   } catch (error) {
     console.log("Login Error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -160,10 +153,12 @@ export const googleLogin = async (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(userDetails);
     const accessToken = generateAccessToken(userDetails);
 
-    return res
-      .cookie("refreshToken", refreshToken, cookieOptions)
-      .status(200)
-      .json({ accessToken, ...userDetails, avatar_url: user.avatar_url });
+    return res.status(200).json({
+      refreshToken,
+      accessToken,
+      ...userDetails,
+      avatar_url: user.avatar_url,
+    });
   } catch (error) {
     console.error("Google login error:", error);
     const { message } = error as { message: string };
