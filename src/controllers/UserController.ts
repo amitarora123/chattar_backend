@@ -1,4 +1,4 @@
-import { CookieOptions, Request, Response } from "express";
+import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 import User, { IUser } from "@/models/User";
@@ -465,13 +465,6 @@ export const logout = async (req: Request, res: Response) => {
       }
     }
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      path: "/",
-    });
-
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log("Logout error:", error);
@@ -481,7 +474,7 @@ export const logout = async (req: Request, res: Response) => {
 
 export const refreshAccessToken = async (req: Request, res: Response) => {
   try {
-    const refreshToken = req.cookies["refreshToken"];
+    const refreshToken = req.body.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({
