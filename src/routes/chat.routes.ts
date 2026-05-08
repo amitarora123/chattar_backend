@@ -8,6 +8,12 @@ import {
   clearChat,
   getRecipientInfo,
 } from "@/controllers/ChatController";
+import { validate } from "@/middleware/validate.middleware";
+import {
+  createGroupSchema,
+  getChatMessagesSchema,
+  clearChatSchema,
+} from "@/validators/chat.validators";
 
 const ChatRoutes = Router();
 
@@ -60,22 +66,37 @@ ChatRoutes.get("/me", getMyChats);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, members]
+ *             required: [name, memberIds]
  *             properties:
  *               name:
  *                 type: string
- *               members:
+ *               memberIds:
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Array of user IDs to add to the group
+ *                 description: User IDs to add to the group
+ *               adminIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: User IDs to set as admins
+ *               description:
+ *                 type: string
+ *               avatar_url:
+ *                 type: string
  *     responses:
- *       201:
+ *       200:
  *         description: Group chat created
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Chat'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized
  *         content:
@@ -83,7 +104,7 @@ ChatRoutes.get("/me", getMyChats);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ChatRoutes.post("/group", createGroup);
+ChatRoutes.post("/group", validate(createGroupSchema), createGroup);
 
 /**
  * @openapi
@@ -173,8 +194,8 @@ ChatRoutes.get("/recipient/:recipient_id", getRecipientInfo);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Chat not found
+ *       403:
+ *         description: User is not a participant of this chat
  *         content:
  *           application/json:
  *             schema:
@@ -197,20 +218,10 @@ ChatRoutes.get("/:chat_id", getChatById);
  *         schema:
  *           type: string
  *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 50
- *       - in: query
  *         name: recipient_id
  *         schema:
  *           type: string
- *         description: User ID of the recipient (used to resolve chat when chat_id is unknown)
+ *         description: Resolve the chat by recipient user ID when chat_id is unknown
  *     responses:
  *       200:
  *         description: List of messages
@@ -226,8 +237,24 @@ ChatRoutes.get("/:chat_id", getChatById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Access denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Chat not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-ChatRoutes.get("/:chat_id/messages", getChatMessages);
+ChatRoutes.get(
+  "/:chat_id/messages",
+  validate(getChatMessagesSchema),
+  getChatMessages,
+);
 
 /**
  * @openapi
@@ -243,11 +270,30 @@ ChatRoutes.get("/:chat_id/messages", getChatMessages);
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: recipient_id
+ *         schema:
+ *           type: string
+ *         description: Resolve the chat by recipient user ID when chat_id is unknown
  *     responses:
  *       200:
  *         description: Chat cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Chat Cleared Successfully
  *       401:
  *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Access denied
  *         content:
  *           application/json:
  *             schema:
@@ -259,6 +305,6 @@ ChatRoutes.get("/:chat_id/messages", getChatMessages);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ChatRoutes.delete("/:chat_id/clear", clearChat);
+ChatRoutes.delete("/:chat_id/clear", validate(clearChatSchema), clearChat);
 
 export default ChatRoutes;

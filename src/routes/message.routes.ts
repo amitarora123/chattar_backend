@@ -5,6 +5,11 @@ import {
   updateMessage,
   deleteMessage,
 } from "@/controllers/MessageController";
+import { validate } from "@/middleware/validate.middleware";
+import {
+  sendMessageSchema,
+  updateMessageSchema,
+} from "@/validators/message.validators";
 
 const MessageRoutes = Router();
 
@@ -31,31 +36,56 @@ MessageRoutes.use(authMiddleware);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [chatId, content]
  *             properties:
- *               chatId:
+ *               chat_id:
  *                 type: string
+ *                 description: Required for group messages
+ *               recipient_id:
+ *                 type: string
+ *                 description: Required for direct messages
  *               content:
  *                 type: string
- *               type:
+ *               attachment:
+ *                 type: object
+ *               reply_to:
  *                 type: string
- *                 enum: [text, image, video, file]
- *                 default: text
+ *                 description: Message ID being replied to
+ *               is_group:
+ *                 type: boolean
+ *                 default: false
  *     responses:
  *       201:
  *         description: Message sent
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Message'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Message sent successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Message'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Not allowed in this chat
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-MessageRoutes.post("/", sendMessage);
+MessageRoutes.post("/", validate(sendMessageSchema), sendMessage);
 
 /**
  * @openapi
@@ -101,7 +131,7 @@ MessageRoutes.post("/", sendMessage);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-MessageRoutes.put("/:message_id", updateMessage);
+MessageRoutes.put("/:message_id", validate(updateMessageSchema), updateMessage);
 
 /**
  * @openapi
@@ -120,6 +150,14 @@ MessageRoutes.put("/:message_id", updateMessage);
  *     responses:
  *       200:
  *         description: Message deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Message Deleted Successfully
  *       401:
  *         description: Unauthorized
  *         content:

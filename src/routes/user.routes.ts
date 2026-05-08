@@ -18,6 +18,19 @@ import {
   authMiddleware,
   optionalAuthMiddleware,
 } from "@/middleware/auth.middleware";
+import { validate } from "@/middleware/validate.middleware";
+import {
+  signupSchema,
+  loginSchema,
+  googleLoginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  verifyUserSchema,
+  resendOtpSchema,
+  searchUsersSchema,
+  updateCurrentUserSchema,
+  refreshAccessTokenSchema,
+} from "@/validators/user.validators";
 
 const UserRoutes = Router();
 
@@ -40,19 +53,37 @@ const UserRoutes = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username, email, password, name]
+ *             required: [username, email, password]
  *             properties:
  *               username:
  *                 type: string
+ *                 minLength: 4
  *               email:
  *                 type: string
+ *                 format: email
  *               password:
  *                 type: string
- *               name:
- *                 type: string
+ *                 minLength: 6
  *     responses:
  *       201:
  *         description: User created, OTP sent for verification
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 isVerified:
+ *                   type: boolean
+ *                   example: false
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
  *       400:
  *         description: Validation error or user already exists
  *         content:
@@ -60,7 +91,7 @@ const UserRoutes = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/sign-up", signup);
+UserRoutes.post("/sign-up", validate(signupSchema), signup);
 
 /**
  * @openapi
@@ -78,46 +109,47 @@ UserRoutes.post("/sign-up", signup);
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
  *               password:
  *                 type: string
  *     responses:
  *       200:
- *         description: Account not verified — OTP sent, verification required before proceeding
+ *         description: Login response — success or verification required
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: User not Verified Please Verify your account
- *                 requiresVerification:
- *                   type: boolean
- *                   example: true
- *                 user:
+ *               oneOf:
+ *                 - description: Login successful
  *                   type: object
  *                   properties:
- *                     user_id:
+ *                     _id:
+ *                       type: string
+ *                     username:
  *                       type: string
  *                     email:
  *                       type: string
- *       201:
- *         description: Login successful — returns JWT token and user details
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 _id:
- *                   type: string
- *                 username:
- *                   type: string
- *                 email:
- *                   type: string
- *                 token:
- *                   type: string
- *                 avatar_url:
- *                   type: string
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *                     avatar_url:
+ *                       type: string
+ *                 - description: Account not verified — OTP sent
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: User not Verified Please Verify your account
+ *                     requiresVerification:
+ *                       type: boolean
+ *                       example: true
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         user_id:
+ *                           type: string
+ *                         email:
+ *                           type: string
  *       400:
  *         description: Invalid credentials
  *         content:
@@ -125,8 +157,7 @@ UserRoutes.post("/sign-up", signup);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-
-UserRoutes.post("/login", login);
+UserRoutes.post("/login", validate(loginSchema), login);
 
 /**
  * @openapi
@@ -140,23 +171,31 @@ UserRoutes.post("/login", login);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [idToken]
+ *             required: [id_token]
  *             properties:
- *               idToken:
+ *               id_token:
  *                 type: string
  *                 description: Google ID token from the client
  *     responses:
  *       200:
- *         description: Login successful, returns JWT token
+ *         description: Login successful
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 token:
+ *                 _id:
  *                   type: string
- *                 user:
- *                   $ref: '#/components/schemas/User'
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *                 avatar_url:
+ *                   type: string
  *       401:
  *         description: Invalid Google token
  *         content:
@@ -164,7 +203,7 @@ UserRoutes.post("/login", login);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/google-login", googleLogin);
+UserRoutes.post("/google-login", validate(googleLoginSchema), googleLogin);
 
 /**
  * @openapi
@@ -182,17 +221,30 @@ UserRoutes.post("/google-login", googleLogin);
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
  *     responses:
  *       200:
- *         description: Reset email sent
- *       404:
- *         description: User not found
+ *         description: Reset link sent if account exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: If an account exists, reset link sent.
+ *       400:
+ *         description: Validation error
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/forgot-password", forgotPassword);
+UserRoutes.post(
+  "/forgot-password",
+  validate(forgotPasswordSchema),
+  forgotPassword,
+);
 
 /**
  * @openapi
@@ -212,9 +264,18 @@ UserRoutes.post("/forgot-password", forgotPassword);
  *                 type: string
  *               newPassword:
  *                 type: string
+ *                 minLength: 6
  *     responses:
  *       200:
  *         description: Password reset successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: password reset successfully
  *       400:
  *         description: Invalid or expired token
  *         content:
@@ -222,57 +283,50 @@ UserRoutes.post("/forgot-password", forgotPassword);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/reset-password", resetPassword);
+UserRoutes.post(
+  "/reset-password",
+  validate(resetPasswordSchema),
+  resetPassword,
+);
 
 /**
  * @openapi
- * /api/user/verify/{user_id}:
+ * /api/user/verify:
  *   post:
  *     tags: [User]
  *     summary: Verify a user account with OTP
- *     parameters:
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [otp]
+ *             required: [otp, email]
  *             properties:
  *               otp:
  *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
+ *               email:
+ *                 type: string
+ *                 format: email
  *     responses:
  *       200:
  *         description: Account verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User verified successfully
  *       400:
  *         description: Invalid or expired OTP
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- */
-UserRoutes.post("/verify", verifyUser);
-
-/**
- * @openapi
- * /api/user/resend-otp/{user_id}:
- *   post:
- *     tags: [User]
- *     summary: Resend verification OTP to user
- *     parameters:
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: OTP resent successfully
  *       404:
  *         description: User not found
  *         content:
@@ -280,7 +334,53 @@ UserRoutes.post("/verify", verifyUser);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.post("/resend-otp", resendOtp);
+UserRoutes.post("/verify", validate(verifyUserSchema), verifyUser);
+
+/**
+ * @openapi
+ * /api/user/resend-otp:
+ *   post:
+ *     tags: [User]
+ *     summary: Resend verification OTP to user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: OTP resent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: OTP Resend Successfully
+ *                 resendAvailableAt:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: Resend not yet available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+UserRoutes.post("/resend-otp", validate(resendOtpSchema), resendOtp);
 
 /**
  * @openapi
@@ -296,14 +396,12 @@ UserRoutes.post("/resend-otp", resendOtp);
  *           type: string
  *     responses:
  *       200:
- *         description: Returns availability status
+ *         description: Returns true if username is available, false if taken
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 available:
- *                   type: boolean
+ *               type: boolean
+ *               example: true
  */
 UserRoutes.get("/unique/:username", checkUsername);
 
@@ -312,16 +410,20 @@ UserRoutes.get("/unique/:username", checkUsername);
  * /api/user/search:
  *   get:
  *     tags: [User]
- *     summary: Search for users by username or name
+ *     summary: Search for users by username or email
  *     security:
  *       - BearerAuth: []
  *     parameters:
  *       - in: query
- *         name: q
- *         required: true
+ *         name: username
  *         schema:
  *           type: string
- *         description: Search query string
+ *         description: Search by username prefix
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Search by email prefix
  *     responses:
  *       200:
  *         description: List of matching users
@@ -330,16 +432,36 @@ UserRoutes.get("/unique/:username", checkUsername);
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/User'
+ *                 type: object
+ *                 properties:
+ *                   user:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       username:
+ *                         type: string
+ *                       avatar_url:
+ *                         type: string
+ *                         nullable: true
+ *                   isContact:
+ *                     type: boolean
+ *                   contactName:
+ *                     type: string
  */
-UserRoutes.get("/search", optionalAuthMiddleware, searchUsers);
+UserRoutes.get(
+  "/search",
+  validate(searchUsersSchema),
+  optionalAuthMiddleware,
+  searchUsers,
+);
 
 /**
  * @openapi
  * /api/user/me:
  *   patch:
  *     tags: [User]
- *     summary: Update current user
+ *     summary: Update current user profile
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -348,10 +470,7 @@ UserRoutes.get("/search", optionalAuthMiddleware, searchUsers);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
- *               - avatar_url
- *               - is_active
+ *             required: [name, avatar_url, is_active]
  *             properties:
  *               name:
  *                 type: string
@@ -369,10 +488,23 @@ UserRoutes.get("/search", optionalAuthMiddleware, searchUsers);
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: details updated successfully
  *                 success:
  *                   type: boolean
+ *                   example: true
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.patch("/me", authMiddleware, updateCurrentUser);
+UserRoutes.patch(
+  "/me",
+  authMiddleware,
+  validate(updateCurrentUserSchema),
+  updateCurrentUser,
+);
 
 /**
  * @openapi
@@ -384,11 +516,35 @@ UserRoutes.patch("/me", authMiddleware, updateCurrentUser);
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: User information
+ *         description: Current user details
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 username:
+ *                   type: string
+ *                 display_name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 avatar_url:
+ *                   type: string
+ *                 is_active:
+ *                   type: boolean
+ *                 isVerified:
+ *                   type: boolean
+ *                 last_seen:
+ *                   type: string
+ *                   format: date-time
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                 updatedAt:
+ *                   type: string
+ *                   format: date-time
  *       401:
  *         description: Unauthorized
  *         content:
@@ -398,8 +554,65 @@ UserRoutes.patch("/me", authMiddleware, updateCurrentUser);
  */
 UserRoutes.get("/me", authMiddleware, getCurrentUser);
 
-UserRoutes.post("/refresh", refreshAccessToken);
+/**
+ * @openapi
+ * /api/user/refresh:
+ *   post:
+ *     tags: [User]
+ *     summary: Refresh access token using a refresh token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New access token issued
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *       400:
+ *         description: Invalid or expired refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+UserRoutes.post(
+  "/refresh",
+  validate(refreshAccessTokenSchema),
+  refreshAccessToken,
+);
 
+/**
+ * @openapi
+ * /api/user/logout:
+ *   post:
+ *     tags: [User]
+ *     summary: Log out and invalidate the current access token
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logged out successfully
+ */
 UserRoutes.post("/logout", logout);
 
 export default UserRoutes;

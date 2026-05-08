@@ -7,6 +7,11 @@ import {
   updateContact,
   deleteContact,
 } from "@/controllers/ContactController";
+import { validate } from "@/middleware/validate.middleware";
+import {
+  createContactSchema,
+  updateContactSchema,
+} from "@/validators/contact.validators";
 
 const ContactRoutes = Router();
 
@@ -33,13 +38,14 @@ ContactRoutes.use(authMiddleware);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [contactId]
+ *             required: [username]
  *             properties:
- *               contactId:
+ *               username:
  *                 type: string
- *                 description: User ID of the contact to add
- *               nickname:
+ *                 description: Username of the user to add as contact
+ *               name:
  *                 type: string
+ *                 description: Display name for the contact
  *     responses:
  *       201:
  *         description: Contact created
@@ -47,6 +53,12 @@ ContactRoutes.use(authMiddleware);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Contact'
+ *       400:
+ *         description: User not found or not on the platform
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized
  *         content:
@@ -54,7 +66,7 @@ ContactRoutes.use(authMiddleware);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ContactRoutes.post("/", createContact);
+ContactRoutes.post("/", validate(createContactSchema), createContact);
 
 /**
  * @openapi
@@ -123,7 +135,7 @@ ContactRoutes.get("/:contact_id", getContact);
  * /api/contacts/{contact_id}:
  *   put:
  *     tags: [Contacts]
- *     summary: Update a contact's nickname
+ *     summary: Update a contact's display name
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -138,8 +150,9 @@ ContactRoutes.get("/:contact_id", getContact);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [name]
  *             properties:
- *               nickname:
+ *               name:
  *                 type: string
  *     responses:
  *       200:
@@ -161,7 +174,7 @@ ContactRoutes.get("/:contact_id", getContact);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ContactRoutes.put("/:contact_id", updateContact);
+ContactRoutes.put("/:contact_id", validate(updateContactSchema), updateContact);
 
 /**
  * @openapi
@@ -180,6 +193,14 @@ ContactRoutes.put("/:contact_id", updateContact);
  *     responses:
  *       200:
  *         description: Contact deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Contact Deleted Successfully
  *       401:
  *         description: Unauthorized
  *         content:
