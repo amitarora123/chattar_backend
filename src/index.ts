@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import { initSocket, registerSocketHandlers } from "./lib/socket/server";
 import { connectDB } from "./lib/utils/db";
 import { swaggerSpec } from "./lib/utils/swagger";
+import AuthRoutes from "./routes/auth.routes";
 import UserRoutes from "./routes/user.routes";
 import ChatRoutes from "./routes/chat.routes";
 import MessageRoutes from "./routes/message.routes";
@@ -39,6 +40,7 @@ app.get("/api/docs.json", (_req, res) => {
 });
 
 // Routes
+app.use("/api/auth", AuthRoutes);
 app.use("/api/user", UserRoutes);
 app.use("/api/chats", ChatRoutes);
 app.use("/api/messages", MessageRoutes);
