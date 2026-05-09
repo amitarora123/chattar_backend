@@ -24,7 +24,7 @@ MessageRoutes.use(authMiddleware);
 
 /**
  * @openapi
- * /api/messages:
+ * /api/messages/send:
  *   post:
  *     tags: [Messages]
  *     summary: Send a message to a chat
@@ -78,7 +78,7 @@ MessageRoutes.use(authMiddleware);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-MessageRoutes.post("/", validate(sendMessageSchema), sendMessage);
+MessageRoutes.post("/send", validate(sendMessageSchema), sendMessage);
 
 /**
  * @openapi
