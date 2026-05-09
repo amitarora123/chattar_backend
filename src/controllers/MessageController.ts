@@ -1,14 +1,16 @@
 import { Request, Response } from "express";
 import { Chat, ChatParticipants } from "@/models/Chat";
 import { Message } from "@/models/Message";
-import { isValidObjectId } from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { getIO } from "@/lib/socket/server";
+import { buildContactMap } from "@/lib/utils/chat";
 
 // POST /api/messages
 export const sendMessage = async (req: Request, res: Response) => {
   try {
-    const { chat_id, content, attachment, reply_to } = req.body;
+    const { content, attachment, reply_to } = req.body;
     const authUser = req.authUser!;
+    const chat_id = req.params.chat_id;
 
     const chat = await Chat.findOne({
       _id: chat_id,
@@ -144,6 +146,79 @@ export const deleteMessage = async (req: Request, res: Response) => {
     return res.status(200).json({ message: "Message Deleted Successfully" });
   } catch (error) {
     console.log("Message Delete Error:", error);
+    const { message } = error as { message: string };
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
+  }
+};
+
+// GET /api/messages/:chat_id/messages
+export const getChatMessages = async (req: Request, res: Response) => {
+  try {
+    const chat_id = req.params.chat_id;
+    const authUser = req.authUser!;
+
+    const chat = await Chat.findById(chat_id);
+
+    if (!chat)
+      return res.status(404).json({
+        message: "Chat Not Found",
+      });
+
+    const chatObjectId = new mongoose.Types.ObjectId(chat._id.toString());
+
+    const chatParticipant = await ChatParticipants.findOne({
+      chat_id: chatObjectId,
+      user_id: authUser._id,
+    }).lean();
+
+    if (!chatParticipant)
+      return res.status(403).json({
+        message: "User is not the chat participant",
+      });
+
+    const messageQuery: Record<string, unknown> = {
+      chat_id: chatObjectId,
+      is_deleted: false,
+    };
+
+    if (chatParticipant.cleared_at) {
+      messageQuery.createdAt = { $gt: chatParticipant.cleared_at };
+    }
+
+    const messages = await Message.find(messageQuery)
+      .populate("sender_id", "username avatar_url")
+      .sort({ createdAt: 1 })
+      .lean();
+
+    const contactMap = await buildContactMap(authUser._id);
+
+    const formattedMessages = messages.map((msg) => {
+      const senderId = msg.sender_id?._id?.toString();
+      return {
+        _id: msg._id.toString(),
+        content: msg.content,
+        chat_id: msg.chat_id.toString(),
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt,
+        is_edited: msg.is_edited,
+        is_deleted: msg.is_deleted,
+        sender: {
+          user: {
+            _id: senderId,
+            username: msg.sender_id?.username,
+            avatar_url: msg.sender_id?.avatar_url,
+          },
+          isContact: senderId ? contactMap.has(senderId) : false,
+          contactName: senderId ? contactMap.get(senderId) : undefined,
+        },
+      };
+    });
+
+    return res.status(200).json(formattedMessages);
+  } catch (error) {
+    console.log("Error fetching messages:", error);
     const { message } = error as { message: string };
     return res
       .status(500)

@@ -18,20 +18,8 @@ export const createGroupSchema = z.object({
   }),
 });
 
-export const getChatMessagesSchema = z.object({
-  params: z.object({
-    chat_id: z.string().min(1, "chat_id is required"),
-  }),
-  query: z.object({
-    recipient_id: z.string().optional(),
-  }),
-});
-
 export const clearChatSchema = z.object({
   params: z.object({
     chat_id: z.string().min(1, "chat_id is required"),
-  }),
-  query: z.object({
-    recipient_id: z.string().optional(),
   }),
 });

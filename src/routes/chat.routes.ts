@@ -4,7 +4,6 @@ import {
   getMyChats,
   createGroup,
   getChatById,
-  getChatMessages,
   clearChat,
   getRecipientInfo,
   createSingleChat,
@@ -12,7 +11,6 @@ import {
 import { validate } from "@/middleware/validate.middleware";
 import {
   createGroupSchema,
-  getChatMessagesSchema,
   clearChatSchema,
   createSingleChatSchema,
 } from "@/validators/chat.validators";
@@ -57,7 +55,7 @@ ChatRoutes.get("/me", getMyChats);
 /**
  * @openapi
  * /api/chats/single:
- *   get:
+ *   post:
  *     tags: [Chats]
  *     summary: Get or create a 1-on-1 chat with a recipient
  *     security:
@@ -100,7 +98,7 @@ ChatRoutes.get("/me", getMyChats);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ChatRoutes.get("/single", validate(createSingleChatSchema), createSingleChat);
+ChatRoutes.post("/single", validate(createSingleChatSchema), createSingleChat);
 
 /**
  * @openapi
@@ -161,7 +159,7 @@ ChatRoutes.post("/group", validate(createGroupSchema), createGroup);
  * /api/chats/recipient/{recipient_id}:
  *   get:
  *     tags: [Chats]
- *     summary: Get recipient info by user ID
+ *     summary: Get user info by recipient ID
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -255,59 +253,6 @@ ChatRoutes.get("/:chat_id", getChatById);
 
 /**
  * @openapi
- * /api/chats/{chat_id}/messages:
- *   get:
- *     tags: [Chats]
- *     summary: Get messages for a chat
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: chat_id
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: recipient_id
- *         schema:
- *           type: string
- *         description: Resolve the chat by recipient user ID when chat_id is unknown
- *     responses:
- *       200:
- *         description: List of messages
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Message'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       403:
- *         description: Access denied
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       404:
- *         description: Chat not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-ChatRoutes.get(
-  "/:chat_id/messages",
-  validate(getChatMessagesSchema),
-  getChatMessages,
-);
-
-/**
- * @openapi
  * /api/chats/{chat_id}/clear:
  *   delete:
  *     tags: [Chats]
@@ -320,11 +265,6 @@ ChatRoutes.get(
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: recipient_id
- *         schema:
- *           type: string
- *         description: Resolve the chat by recipient user ID when chat_id is unknown
  *     responses:
  *       200:
  *         description: Chat cleared successfully

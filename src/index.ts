@@ -60,7 +60,7 @@ connectDB()
         process.exit(1);
       })
       .listen(PORT, () => {
-        console.log(`> Ready on http://localhost:${PORT}`);
+        console.log(`> Ready on http://localhost:${PORT}/api/docs`);
       }),
   )
   .catch((error) => {

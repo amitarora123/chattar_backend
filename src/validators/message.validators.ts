@@ -1,8 +1,16 @@
 import { z } from "zod";
 
+export const getChatMessagesSchema = z.object({
+  params: z.object({
+    chat_id: z.string().min(1, "chat_id is required"),
+  }),
+});
+
 export const sendMessageSchema = z.object({
+  params: z.object({
+    chat_id: z.string().min(1, "chat_id is required"),
+  }),
   body: z.object({
-    chat_id: z.string(),
     content: z.string().optional(),
     attachment: z.unknown().optional(),
     reply_to: z.string().optional(),

@@ -4,9 +4,11 @@ import {
   sendMessage,
   updateMessage,
   deleteMessage,
+  getChatMessages,
 } from "@/controllers/MessageController";
 import { validate } from "@/middleware/validate.middleware";
 import {
+  getChatMessagesSchema,
   sendMessageSchema,
   updateMessageSchema,
 } from "@/validators/message.validators";
@@ -24,12 +26,18 @@ MessageRoutes.use(authMiddleware);
 
 /**
  * @openapi
- * /api/messages/send:
+ * /api/messages/send/{chat_id}:
  *   post:
  *     tags: [Messages]
  *     summary: Send a message to a chat
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chat_id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -37,8 +45,6 @@ MessageRoutes.use(authMiddleware);
  *           schema:
  *             type: object
  *             properties:
- *               chat_id:
- *                 type: string
  *               content:
  *                 type: string
  *               attachment:
@@ -78,7 +84,56 @@ MessageRoutes.use(authMiddleware);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-MessageRoutes.post("/send", validate(sendMessageSchema), sendMessage);
+
+MessageRoutes.post("/send/:chat_id", validate(sendMessageSchema), sendMessage);
+
+/**
+ * @openapi
+ * /api/messages/chat/{chat_id}:
+ *   get:
+ *     tags: [Messages]
+ *     summary: Get messages for a chat
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chat_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of messages
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Message'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Access denied
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Chat not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+MessageRoutes.get(
+  "/chat/:chat_id",
+  validate(getChatMessagesSchema),
+  getChatMessages,
+);
 
 /**
  * @openapi
