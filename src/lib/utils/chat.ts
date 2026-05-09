@@ -17,30 +17,34 @@ export async function buildContactMap(
 export async function getLastMessages(chatIds: unknown[]) {
   return Message.aggregate([
     { $match: { chat_id: { $in: chatIds }, is_deleted: false } },
-    { $sort: { createdAt: -1 } },
+    { $sort: { chat_id: 1, createdAt: -1 } },
+    {
+      $group: {
+        _id: "$chat_id",
+        lastMessage: { $first: "$$ROOT" },
+      },
+    },
     {
       $lookup: {
         from: "users",
-        localField: "sender_id",
+        localField: "lastMessage.sender_id",
         foreignField: "_id",
         as: "sender",
       },
     },
     { $unwind: { path: "$sender", preserveNullAndEmptyArrays: true } },
     {
-      $group: {
-        _id: "$chat_id",
+      $project: {
+        _id: 1,
         lastMessage: {
-          $first: {
-            _id: "$_id",
-            content: "$content",
-            chat_id: "$chat_id",
-            createdAt: "$createdAt",
-            sender: {
-              _id: "$sender._id",
-              username: "$sender.username",
-              avatar_url: "$sender.avatar_url",
-            },
+          _id: "$lastMessage._id",
+          content: "$lastMessage.content",
+          chat_id: "$lastMessage.chat_id",
+          createdAt: "$lastMessage.createdAt",
+          sender: {
+            _id: "$sender._id",
+            username: "$sender.username",
+            avatar_url: "$sender.avatar_url",
           },
         },
       },

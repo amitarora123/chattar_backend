@@ -33,7 +33,7 @@ export const getMyChats = async (req: Request, res: Response) => {
 
     const chatIds = chatParticipants.map((c) => c.chat_id._id);
 
-    if (chatIds.length === 0) return [];
+    if (chatIds.length === 0) return res.json([]);
 
     const clearedAtMap = new Map(
       chatParticipants.map((cp) => [
@@ -42,18 +42,24 @@ export const getMyChats = async (req: Request, res: Response) => {
       ]),
     );
 
-    const allParticipants = await ChatParticipants.find({
-      chat_id: { $in: chatIds },
-    })
-      .populate("user_id")
-      .lean();
+    const [allParticipants, contactMap, lastMessages] = await Promise.all([
+      ChatParticipants.find({ chat_id: { $in: chatIds } })
+        .populate("user_id")
+        .lean(),
+      buildContactMap(authUser._id),
+      getLastMessages(chatIds),
+    ]);
 
-    const contactMap = await buildContactMap(authUser._id);
-
-    const lastMessages = await getLastMessages(chatIds);
     const lastMessageMap = new Map(
       lastMessages.map((m) => [m._id.toString(), m.lastMessage]),
     );
+
+    const participantsByChatId = new Map<string, typeof allParticipants>();
+    for (const p of allParticipants) {
+      const key = p.chat_id.toString();
+      if (!participantsByChatId.has(key)) participantsByChatId.set(key, []);
+      participantsByChatId.get(key)!.push(p);
+    }
 
     const chats = chatParticipants.map((cp) => {
       const chat = cp.chat_id as IChat;
@@ -71,9 +77,8 @@ export const getMyChats = async (req: Request, res: Response) => {
 
       lastMessage = formatLastMessageSender(lastMessage, contactMap);
 
-      const participantsForChat = allParticipants.filter(
-        (p) => p.chat_id.toString() === chat._id.toString(),
-      );
+      const participantsForChat =
+        participantsByChatId.get(chat._id.toString()) ?? [];
 
       const formattedParticipants = participantsForChat
         .filter((p) => {
