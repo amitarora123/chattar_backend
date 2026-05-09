@@ -7,11 +7,10 @@ import {
   generateOtp,
   generateExpiresIn,
   getSecondsLeft,
-  createUser,
   generateRefreshToken,
   generateAccessToken,
-} from "@/services/UserService";
-import { sendOtp, sendResetPasswordEmail } from "@/services/EmailService";
+} from "@/lib/utils/auth";
+import { sendOtp, sendResetPasswordEmail } from "@/lib/utils/email";
 import jwt from "jsonwebtoken";
 import { AuthUser } from "@/types/user.types";
 import BlockedToken from "@/models/BlockedToken";
@@ -23,7 +22,22 @@ export const signup = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
 
-    const user = await createUser({ username, email, password });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const otpCode = generateOtp().toString();
+    const expiresIn = generateExpiresIn(5);
+
+    const user = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      otp: {
+        code: otpCode,
+        expiresIn: new Date(expiresIn),
+        resendAvailableAt: new Date(Date.now() + 60 * 1000),
+      },
+    });
+
+    sendOtp(email, otpCode);
 
     return res.status(201).json({
       username,

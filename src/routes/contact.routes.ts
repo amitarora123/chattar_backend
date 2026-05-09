@@ -3,7 +3,7 @@ import { authMiddleware } from "@/middleware/auth.middleware";
 import {
   createContact,
   getMyContacts,
-  getContact,
+  getContactById,
   updateContact,
   deleteContact,
 } from "@/controllers/ContactController";
@@ -128,7 +128,7 @@ ContactRoutes.get("/me", getMyContacts);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ContactRoutes.get("/:contact_id", getContact);
+ContactRoutes.get("/:contact_id", getContactById);
 
 /**
  * @openapi

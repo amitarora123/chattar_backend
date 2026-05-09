@@ -355,6 +355,6 @@ ChatRoutes.get(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-ChatRoutes.delete("/:chat_id/clear", validate(clearChatSchema), clearChat);
+ChatRoutes.post("/:chat_id/clear", validate(clearChatSchema), clearChat);
 
 export default ChatRoutes;

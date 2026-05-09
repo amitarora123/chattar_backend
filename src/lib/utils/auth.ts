@@ -1,15 +1,9 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User, { IUser } from "@/models/User";
-import { sendOtp } from "@/services/EmailService";
+import { sendOtp } from "./email";
 import jwt from "jsonwebtoken";
 import { AuthUser } from "@/types/user.types";
-
-interface CreateUserBody {
-  username: string;
-  email: string;
-  password: string;
-}
 
 export async function generateUniqueUsername(base: string): Promise<string> {
   let username = base;
@@ -38,31 +32,6 @@ export function getSecondsLeft(timestamp: Date | string): number {
   const now = Date.now();
   const diff = Math.floor((expiryTime - now) / 1000);
   return Math.max(0, diff);
-}
-
-export async function createUser({
-  username,
-  email,
-  password,
-}: CreateUserBody): Promise<IUser> {
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const otpCode = generateOtp().toString();
-  const expiresIn = generateExpiresIn(5);
-
-  const user = await User.create({
-    username,
-    email,
-    password: hashedPassword,
-    otp: {
-      code: otpCode,
-      expiresIn: new Date(expiresIn),
-      resendAvailableAt: new Date(Date.now() + 60 * 1000),
-    },
-  });
-
-  sendOtp(email, otpCode);
-
-  return user;
 }
 
 export function generateRefreshToken(userDetails: AuthUser) {
