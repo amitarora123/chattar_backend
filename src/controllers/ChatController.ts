@@ -6,7 +6,9 @@ import {
   getChatMessages as getChatMessagesService,
   clearChat as clearChatService,
   getRecipientInfo as getRecipientInfoService,
+  getChatKey,
 } from "@/services/ChatService";
+import { Chat, ChatParticipants, IChat } from "@/models/Chat";
 
 // GET /api/chats/me
 export const getMyChats = async (req: Request, res: Response) => {
@@ -149,5 +151,47 @@ export const clearChat = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: message || "Internal Server Error" });
+  }
+};
+
+export const createSingleChat = async (req: Request, res: Response) => {
+  try {
+    const { recipient_id } = req.body;
+
+    const user_id = req.authUser!._id;
+
+    const chat_key = getChatKey(recipient_id, user_id);
+
+    const existingChat = await Chat.findOne({
+      chat_key,
+    });
+
+    if (existingChat) {
+      return res.json(existingChat);
+    }
+
+    // create the chat participants
+
+    const newChat: IChat = await Chat.create({
+      chat_key,
+    });
+
+    await ChatParticipants.create({
+      chat_id: newChat._id,
+      user_id,
+    });
+
+    await ChatParticipants.create({
+      chat_id: recipient_id,
+      user_id,
+    });
+
+    return res.json(newChat);
+  } catch (error) {
+    const { message } = error as { message: string };
+    console.log("Error Creating Single Chat: ", message);
+    return res.status(500).json({
+      message,
+    });
   }
 };

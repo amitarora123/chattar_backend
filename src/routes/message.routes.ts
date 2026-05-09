@@ -39,10 +39,6 @@ MessageRoutes.use(authMiddleware);
  *             properties:
  *               chat_id:
  *                 type: string
- *                 description: Required for group messages
- *               recipient_id:
- *                 type: string
- *                 description: Required for direct messages
  *               content:
  *                 type: string
  *               attachment:
@@ -50,9 +46,6 @@ MessageRoutes.use(authMiddleware);
  *               reply_to:
  *                 type: string
  *                 description: Message ID being replied to
- *               is_group:
- *                 type: boolean
- *                 default: false
  *     responses:
  *       201:
  *         description: Message sent

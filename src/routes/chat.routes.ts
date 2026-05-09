@@ -7,12 +7,14 @@ import {
   getChatMessages,
   clearChat,
   getRecipientInfo,
+  createSingleChat,
 } from "@/controllers/ChatController";
 import { validate } from "@/middleware/validate.middleware";
 import {
   createGroupSchema,
   getChatMessagesSchema,
   clearChatSchema,
+  createSingleChatSchema,
 } from "@/validators/chat.validators";
 
 const ChatRoutes = Router();
@@ -51,6 +53,54 @@ ChatRoutes.use(authMiddleware);
  *               $ref: '#/components/schemas/Error'
  */
 ChatRoutes.get("/me", getMyChats);
+
+/**
+ * @openapi
+ * /api/chats/single:
+ *   get:
+ *     tags: [Chats]
+ *     summary: Get or create a 1-on-1 chat with a recipient
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [recipient_id]
+ *             properties:
+ *               recipient_id:
+ *                 type: string
+ *                 description: MongoDB ObjectId of the recipient user
+ *                 pattern: '^[a-f\d]{24}$'
+ *     responses:
+ *       200:
+ *         description: Existing or newly created chat
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Chat'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+ChatRoutes.get("/single", validate(createSingleChatSchema), createSingleChat);
 
 /**
  * @openapi
