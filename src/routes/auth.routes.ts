@@ -390,13 +390,15 @@ AuthRoutes.post("/resend-otp", validate(resendOtpSchema), resendOtp);
  *                 type: string
  *     responses:
  *       200:
- *         description: New access token issued with user data
+ *         description: New access token, rotated refresh token, and user data
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
  *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
  *                   type: string
  *                 _id:
  *                   type: string

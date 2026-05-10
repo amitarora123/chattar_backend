@@ -355,14 +355,18 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const accessToken = generateAccessToken({
+    const userDetails = {
       _id: decodedToken._id,
       email: decodedToken.email,
       username: decodedToken.username,
-    });
+    };
+
+    const accessToken = generateAccessToken(userDetails);
+    const newRefreshToken = generateRefreshToken(userDetails);
 
     return res.status(200).json({
       accessToken,
+      refreshToken: newRefreshToken,
       _id: user._id.toString(),
       username: user.username,
       email: user.email,
