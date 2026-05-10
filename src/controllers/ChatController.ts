@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-
+import { Types } from "mongoose";
 import {
   Chat,
   ChatParticipants,
@@ -18,11 +18,6 @@ import User, { IUser } from "@/models/User";
 export const getMyChats = async (req: Request, res: Response) => {
   try {
     const authUser = req.authUser!;
-
-    const selfChatKey = getChatKey(
-      authUser._id.toString(),
-      authUser._id.toString(),
-    );
 
     const chatParticipants = await ChatParticipants.find({
       user_id: authUser._id,
@@ -81,26 +76,19 @@ export const getMyChats = async (req: Request, res: Response) => {
       const participantsForChat =
         participantsByChatId.get(chat._id.toString()) ?? [];
 
-      const formattedParticipants = participantsForChat
-        .filter((p) => {
-          if (!chat.is_group && chat.chat_key !== selfChatKey) {
-            return p.user_id._id.toString() !== authUser._id.toString();
-          }
-          return true;
-        })
-        .map((p) => {
-          const user = p.user_id as IUser;
-          return {
-            user: {
-              _id: user._id.toString(),
-              username: user.username,
-              avatar_url: user.avatar_url ?? null,
-            },
-            groupRole: p.groupRole,
-            isContact: contactMap.has(user._id.toString()),
-            contactName: contactMap.get(user._id.toString()) ?? null,
-          };
-        });
+      const formattedParticipants = participantsForChat.map((p) => {
+        const user = p.user_id as IUser;
+        return {
+          user: {
+            _id: user._id.toString(),
+            username: user.username,
+            avatar_url: user.avatar_url ?? null,
+          },
+          groupRole: p.groupRole,
+          isContact: contactMap.has(user._id.toString()),
+          contactName: contactMap.get(user._id.toString()) ?? null,
+        };
+      });
 
       return {
         _id: chat._id.toString(),
@@ -142,20 +130,17 @@ export const createGroup = async (req: Request, res: Response) => {
       },
     });
 
-    const participantsToInsert = [];
-
-    participantsToInsert.push({
-      chat_id: group._id,
-      user_id: authUser._id,
-      groupRole: { assigned_by: authUser._id, name: "Admin" },
-    });
+    const participantsToInsert: Partial<IChatParticipants>[] = [];
 
     if (adminIds?.length) {
       adminIds.forEach((id: string) => {
         participantsToInsert.push({
           chat_id: group._id,
-          user_id: id,
-          groupRole: { assigned_by: authUser._id, name: "Admin" },
+          user_id: new Types.ObjectId(id),
+          groupRole: {
+            assigned_by: new Types.ObjectId(authUser._id),
+            name: "Admin",
+          },
         });
       });
     }
@@ -164,15 +149,47 @@ export const createGroup = async (req: Request, res: Response) => {
       memberIds.forEach((id: string) => {
         participantsToInsert.push({
           chat_id: group._id,
-          user_id: id,
-          groupRole: { name: "Member", assigned_by: authUser._id },
+          user_id: new Types.ObjectId(id),
+          groupRole: {
+            name: "Member",
+            assigned_by: new Types.ObjectId(authUser._id),
+          },
         });
       });
     }
 
-    const members = await ChatParticipants.insertMany(participantsToInsert);
+    const [, contactMap] = await Promise.all([
+      ChatParticipants.insertMany(participantsToInsert),
+      buildContactMap(authUser._id),
+    ]);
 
-    return res.status(200).json({ group, members });
+    const participants = await ChatParticipants.find({ chat_id: group._id })
+      .populate("user_id")
+      .lean();
+
+    const formattedParticipants = participants.map((p) => {
+      const user = p.user_id as IUser;
+      return {
+        user: {
+          _id: user._id.toString(),
+          username: user.username,
+          avatar_url: user.avatar_url ?? null,
+        },
+        groupRole: p.groupRole,
+        isContact: contactMap.has(user._id.toString()),
+        contactName: contactMap.get(user._id.toString()) ?? null,
+      };
+    });
+
+    return res.status(200).json({
+      _id: group._id.toString(),
+      is_group: group.is_group,
+      groupMetaData: group.groupMetaData,
+      last_message: null,
+      participants: formattedParticipants,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+    });
   } catch (error) {
     console.log("Error creating group:", error);
     const { message } = error as { message: string };
@@ -203,36 +220,27 @@ export const getChatById = async (req: Request, res: Response) => {
 
     const chat = chatParticipant.chat_id;
 
-    const participants = await ChatParticipants.find({
-      chat_id,
-      left_at: null,
-    })
-      .populate({ path: "user_id", select: "_id username avatar_url" })
-      .select("user_id role")
-      .lean();
+    const [participants, contactMap] = await Promise.all([
+      ChatParticipants.find({ chat_id, left_at: null })
+        .populate({ path: "user_id", select: "_id username avatar_url" })
+        .select("user_id groupRole")
+        .lean(),
+      buildContactMap(authUser._id),
+    ]);
 
-    const contactMap = await buildContactMap(authUser._id);
-
-    const formattedParticipants = participants
-      .filter((p) => {
-        if (!chat.is_group) {
-          return p.user_id._id.toString() !== authUser._id.toString();
-        }
-        return true;
-      })
-      .map((p) => {
-        const userId = p.user_id._id.toString();
-        return {
-          user: {
-            _id: userId,
-            username: p.user_id.username,
-            avatar_url: p.user_id.avatar_url ?? null,
-          },
-          role: p.role,
-          isContact: contactMap.has(userId),
-          contactName: contactMap.get(userId) ?? null,
-        };
-      });
+    const formattedParticipants = participants.map((p) => {
+      const userId = p.user_id._id.toString();
+      return {
+        user: {
+          _id: userId,
+          username: p.user_id.username,
+          avatar_url: p.user_id.avatar_url ?? null,
+        },
+        groupRole: p.groupRole,
+        isContact: contactMap.has(userId),
+        contactName: contactMap.get(userId) ?? null,
+      };
+    });
 
     return res
       .status(200)
@@ -331,36 +339,66 @@ export const clearChat = async (req: Request, res: Response) => {
 export const createSingleChat = async (req: Request, res: Response) => {
   try {
     const { recipient_id } = req.body;
-
     const user_id = req.authUser!._id;
-
     const chat_key = getChatKey(recipient_id, user_id);
 
-    const existingChat = await Chat.findOne({
-      chat_key,
-    });
+    const chat = await Chat.findOneAndUpdate(
+      { chat_key },
+      { $setOnInsert: { chat_key, is_group: false } },
+      { upsert: true, new: true },
+    );
 
-    if (existingChat) {
-      return res.json(existingChat);
-    }
-
-    // create the chat participants
-
-    const newChat: IChat = await Chat.create({
-      chat_key,
-    });
-
-    await ChatParticipants.insertMany([
-      { chat_id: newChat._id, user_id },
-      { chat_id: newChat._id, user_id: recipient_id },
+    const [, , contactMap] = await Promise.all([
+      ChatParticipants.updateOne(
+        { chat_id: chat!._id, user_id },
+        {
+          $setOnInsert: { chat_id: chat!._id, user_id, joined_at: new Date() },
+        },
+        { upsert: true },
+      ),
+      ChatParticipants.updateOne(
+        { chat_id: chat!._id, user_id: recipient_id },
+        {
+          $setOnInsert: {
+            chat_id: chat!._id,
+            user_id: recipient_id,
+            joined_at: new Date(),
+          },
+        },
+        { upsert: true },
+      ),
+      buildContactMap(user_id),
     ]);
 
-    return res.json(newChat);
+    const participants = await ChatParticipants.find({ chat_id: chat!._id })
+      .populate("user_id")
+      .lean();
+
+    const formattedParticipants = participants.map((p) => {
+      const user = p.user_id as IUser;
+      return {
+        user: {
+          _id: user._id.toString(),
+          username: user.username,
+          avatar_url: user.avatar_url ?? null,
+        },
+        groupRole: p.groupRole,
+        isContact: contactMap.has(user._id.toString()),
+        contactName: contactMap.get(user._id.toString()) ?? null,
+      };
+    });
+
+    return res.json({
+      _id: chat!._id.toString(),
+      is_group: chat!.is_group,
+      last_message: null,
+      participants: formattedParticipants,
+      createdAt: chat!.createdAt,
+      updatedAt: chat!.updatedAt,
+    });
   } catch (error) {
     const { message } = error as { message: string };
     console.log("Error Creating Single Chat: ", message);
-    return res.status(500).json({
-      message,
-    });
+    return res.status(500).json({ message });
   }
 };

@@ -114,7 +114,7 @@ ChatRoutes.post("/single", validate(createSingleChatSchema), createSingleChat);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, memberIds]
+ *             required: [name]
  *             properties:
  *               name:
  *                 type: string
@@ -122,12 +122,14 @@ ChatRoutes.post("/single", validate(createSingleChatSchema), createSingleChat);
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: User IDs to add to the group
+ *                   pattern: '^[a-f\d]{24}$'
+ *                 description: User IDs to add as members (include auth user's ID here to join as a member)
  *               adminIds:
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: User IDs to set as admins
+ *                   pattern: '^[a-f\d]{24}$'
+ *                 description: User IDs to add as admins (include auth user's ID here to join as an admin)
  *               description:
  *                 type: string
  *               avatar_url:

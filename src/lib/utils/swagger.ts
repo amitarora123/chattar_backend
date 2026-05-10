@@ -30,17 +30,56 @@ const options: swaggerJsdoc.Options = {
             updatedAt: { type: "string", format: "date-time" },
           },
         },
+        GroupMetaData: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            description: { type: "string", nullable: true },
+            avatar_url: { type: "string", nullable: true },
+            created_by: { type: "string" },
+          },
+        },
+        GroupRole: {
+          type: "object",
+          nullable: true,
+          properties: {
+            name: { type: "string", enum: ["Admin", "Member"] },
+            assigned_by: { type: "string" },
+          },
+        },
+        ChatParticipant: {
+          type: "object",
+          properties: {
+            user: {
+              type: "object",
+              properties: {
+                _id: { type: "string" },
+                username: { type: "string" },
+                avatar_url: { type: "string", nullable: true },
+              },
+            },
+            groupRole: { $ref: "#/components/schemas/GroupRole" },
+            isContact: { type: "boolean" },
+            contactName: { type: "string", nullable: true },
+          },
+        },
         Chat: {
           type: "object",
           properties: {
             _id: { type: "string" },
-            name: { type: "string" },
-            isGroup: { type: "boolean" },
-            members: {
-              type: "array",
-              items: { $ref: "#/components/schemas/User" },
+            is_group: { type: "boolean" },
+            groupMetaData: {
+              allOf: [{ $ref: "#/components/schemas/GroupMetaData" }],
+              nullable: true,
             },
-            lastMessage: { $ref: "#/components/schemas/Message" },
+            last_message: {
+              allOf: [{ $ref: "#/components/schemas/Message" }],
+              nullable: true,
+            },
+            participants: {
+              type: "array",
+              items: { $ref: "#/components/schemas/ChatParticipant" },
+            },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },

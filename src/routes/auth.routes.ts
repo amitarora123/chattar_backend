@@ -390,7 +390,7 @@ AuthRoutes.post("/resend-otp", validate(resendOtpSchema), resendOtp);
  *                 type: string
  *     responses:
  *       200:
- *         description: New access token issued
+ *         description: New access token issued with user data
  *         content:
  *           application/json:
  *             schema:
@@ -398,8 +398,23 @@ AuthRoutes.post("/resend-otp", validate(resendOtpSchema), resendOtp);
  *               properties:
  *                 accessToken:
  *                   type: string
+ *                 _id:
+ *                   type: string
+ *                 username:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 avatar_url:
+ *                   type: string
+ *                   nullable: true
  *       400:
  *         description: Invalid or expired refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
  *         content:
  *           application/json:
  *             schema:

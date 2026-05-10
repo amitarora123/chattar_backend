@@ -11,8 +11,8 @@ export const createSingleChatSchema = z.object({
 export const createGroupSchema = z.object({
   body: z.object({
     name: z.string().min(1, "Group name is required"),
-    memberIds: z.array(z.string()).min(1, "At least one member is required"),
-    adminIds: z.array(z.string()).optional(),
+    memberIds: z.array(mongoId).optional(),
+    adminIds: z.array(mongoId).optional(),
     description: z.string().optional(),
     avatar_url: z.string().optional(),
   }),

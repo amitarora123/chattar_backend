@@ -179,9 +179,13 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     if (user) {
       const expiresIn = generateExpiresIn(15);
-      const token = jwt.sign({ user_id: user._id }, process.env.JWT_SECRET!, {
-        expiresIn: "15m",
-      });
+      const token = jwt.sign(
+        { user_id: user._id },
+        process.env.RESET_PASSWORD_SECRET!,
+        {
+          expiresIn: "15m",
+        },
+      );
 
       user.password_reset = {
         expiresIn: new Date(expiresIn),
@@ -213,7 +217,7 @@ export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+    const decoded = jwt.verify(token, process.env.RESET_PASSWORD_SECRET!) as {
       user_id: string;
     };
 
@@ -343,13 +347,27 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid Refresh Token" });
     }
 
+    const user = await User.findById(decodedToken._id)
+      .select("_id username email avatar_url")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     const accessToken = generateAccessToken({
       _id: decodedToken._id,
       email: decodedToken.email,
       username: decodedToken.username,
     });
 
-    return res.status(200).json({ accessToken });
+    return res.status(200).json({
+      accessToken,
+      _id: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      avatar_url: user.avatar_url ?? null,
+    });
   } catch (error) {
     console.log("Error while Refreshing Token: ", error);
     const { message } = error as { message: string };
