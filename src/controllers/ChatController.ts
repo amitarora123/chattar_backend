@@ -31,12 +31,13 @@ export const getMyChats = async (req: Request, res: Response) => {
       .populate("chat_id")
       .lean();
 
-    const chatIds = chatParticipants.map((c) => c.chat_id._id);
+    const validParticipants = chatParticipants.filter((c) => c.chat_id != null);
+    const chatIds = validParticipants.map((c) => c.chat_id._id);
 
     if (chatIds.length === 0) return res.json([]);
 
     const clearedAtMap = new Map(
-      chatParticipants.map((cp) => [
+      validParticipants.map((cp) => [
         cp.chat_id._id.toString(),
         cp.cleared_at ?? null,
       ]),
@@ -61,7 +62,7 @@ export const getMyChats = async (req: Request, res: Response) => {
       participantsByChatId.get(key)!.push(p);
     }
 
-    const chats = chatParticipants.map((cp) => {
+    const chats = validParticipants.map((cp) => {
       const chat = cp.chat_id as IChat;
       let lastMessage = lastMessageMap.get(chat._id.toString()) || null;
 
