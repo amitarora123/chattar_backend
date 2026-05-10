@@ -23,13 +23,7 @@ export const getMyChats = async (req: Request, res: Response) => {
       user_id: authUser._id,
       left_at: null,
     })
-      .populate({
-        path: "chat_id",
-        populate: {
-          path: "groupMetaData.created_by",
-          select: "_id username email avatar_url display_name",
-        },
-      })
+      .populate("chat_id")
       .lean();
 
     const validParticipants = chatParticipants.filter((c) => c.chat_id != null);
@@ -88,7 +82,9 @@ export const getMyChats = async (req: Request, res: Response) => {
           user: {
             _id: user._id.toString(),
             username: user.username,
+            display_name: user.display_name ?? null,
             avatar_url: user.avatar_url ?? null,
+            last_seen: user.last_seen ?? null,
           },
           groupRole: p.groupRole,
           isContact: contactMap.has(user._id.toString()),
@@ -96,10 +92,25 @@ export const getMyChats = async (req: Request, res: Response) => {
         };
       });
 
+      const createdBy =
+        chat.is_group && chat.groupMetaData
+          ? (formattedParticipants.find(
+              (p) => p.user._id === chat.groupMetaData!.created_by.toString(),
+            ) ?? null)
+          : null;
+
       return {
         _id: chat._id.toString(),
         is_group: chat.is_group,
-        groupMetaData: chat.is_group ? chat.groupMetaData : undefined,
+        groupMetaData:
+          chat.is_group && chat.groupMetaData
+            ? {
+                name: chat.groupMetaData.name,
+                description: chat.groupMetaData.description ?? null,
+                avatar_url: chat.groupMetaData.avatar_url ?? null,
+                created_by: createdBy,
+              }
+            : undefined,
         last_message: lastMessage,
         participants: formattedParticipants,
         createdAt: chat.createdAt,
@@ -167,10 +178,6 @@ export const createGroup = async (req: Request, res: Response) => {
     const [, contactMap] = await Promise.all([
       ChatParticipants.insertMany(participantsToInsert),
       buildContactMap(authUser._id),
-      group.populate({
-        path: "groupMetaData.created_by",
-        select: "_id username email avatar_url display_name",
-      }),
     ]);
 
     const participants = await ChatParticipants.find({ chat_id: group._id })
@@ -183,7 +190,9 @@ export const createGroup = async (req: Request, res: Response) => {
         user: {
           _id: user._id.toString(),
           username: user.username,
+          display_name: user.display_name ?? null,
           avatar_url: user.avatar_url ?? null,
+          last_seen: user.last_seen ?? null,
         },
         groupRole: p.groupRole,
         isContact: contactMap.has(user._id.toString()),
@@ -191,10 +200,23 @@ export const createGroup = async (req: Request, res: Response) => {
       };
     });
 
+    const createdBy = group.groupMetaData
+      ? (formattedParticipants.find(
+          (p) => p.user._id === group.groupMetaData!.created_by.toString(),
+        ) ?? null)
+      : null;
+
     return res.status(200).json({
       _id: group._id.toString(),
       is_group: group.is_group,
-      groupMetaData: group.groupMetaData,
+      groupMetaData: group.groupMetaData
+        ? {
+            name: group.groupMetaData.name,
+            description: group.groupMetaData.description ?? null,
+            avatar_url: group.groupMetaData.avatar_url ?? null,
+            created_by: createdBy,
+          }
+        : undefined,
       last_message: null,
       participants: formattedParticipants,
       createdAt: group.createdAt,
@@ -220,13 +242,7 @@ export const getChatById = async (req: Request, res: Response) => {
       left_at: null,
       chat_id,
     })
-      .populate({
-        path: "chat_id",
-        populate: {
-          path: "groupMetaData.created_by",
-          select: "_id username email avatar_url display_name",
-        },
-      })
+      .populate("chat_id")
       .lean();
 
     if (!chatParticipant)
@@ -234,11 +250,14 @@ export const getChatById = async (req: Request, res: Response) => {
         message: "User is not participant for this chat",
       });
 
-    const chat = chatParticipant.chat_id;
+    const chat = chatParticipant.chat_id as IChat;
 
     const [participants, contactMap] = await Promise.all([
       ChatParticipants.find({ chat_id, left_at: null })
-        .populate({ path: "user_id", select: "_id username avatar_url" })
+        .populate({
+          path: "user_id",
+          select: "_id username display_name avatar_url last_seen",
+        })
         .select("user_id groupRole")
         .lean(),
       buildContactMap(authUser._id),
@@ -250,7 +269,9 @@ export const getChatById = async (req: Request, res: Response) => {
         user: {
           _id: userId,
           username: p.user_id.username,
+          display_name: p.user_id.display_name ?? null,
           avatar_url: p.user_id.avatar_url ?? null,
+          last_seen: p.user_id.last_seen ?? null,
         },
         groupRole: p.groupRole,
         isContact: contactMap.has(userId),
@@ -258,9 +279,29 @@ export const getChatById = async (req: Request, res: Response) => {
       };
     });
 
-    return res
-      .status(200)
-      .json({ ...chat, participants: formattedParticipants });
+    const createdBy =
+      chat.is_group && chat.groupMetaData
+        ? (formattedParticipants.find(
+            (p) => p.user._id === chat.groupMetaData!.created_by.toString(),
+          ) ?? null)
+        : null;
+
+    return res.status(200).json({
+      _id: chat._id.toString(),
+      is_group: chat.is_group,
+      groupMetaData:
+        chat.is_group && chat.groupMetaData
+          ? {
+              name: chat.groupMetaData.name,
+              description: chat.groupMetaData.description ?? null,
+              avatar_url: chat.groupMetaData.avatar_url ?? null,
+              created_by: createdBy,
+            }
+          : undefined,
+      participants: formattedParticipants,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
+    });
   } catch (error) {
     console.error("Chat Fetch Error:", error);
     const { message } = error as { message?: string };
@@ -396,7 +437,9 @@ export const createSingleChat = async (req: Request, res: Response) => {
         user: {
           _id: user._id.toString(),
           username: user.username,
+          display_name: user.display_name ?? null,
           avatar_url: user.avatar_url ?? null,
+          last_seen: user.last_seen ?? null,
         },
         groupRole: p.groupRole,
         isContact: contactMap.has(user._id.toString()),
