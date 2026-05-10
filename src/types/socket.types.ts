@@ -16,6 +16,17 @@ export interface ClientToServerEvents {
   "typing:start": (data: { room: string; userId: string }) => void;
 
   "typing:stop": (data: { room: string; userId: string }) => void;
+
+  "message:send": (
+    data: {
+      room: string;
+      chat_id: string;
+      content: string;
+      attachment?: unknown;
+      reply_to?: string;
+    },
+    callback: (response: { error?: string; data?: Message }) => void,
+  ) => void;
 }
 
 export type InterServerEvents = Record<string, never>;
