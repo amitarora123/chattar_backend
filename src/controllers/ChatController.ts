@@ -350,15 +350,10 @@ export const createSingleChat = async (req: Request, res: Response) => {
       chat_key,
     });
 
-    await ChatParticipants.create({
-      chat_id: newChat._id,
-      user_id,
-    });
-
-    await ChatParticipants.create({
-      chat_id: recipient_id,
-      user_id,
-    });
+    await ChatParticipants.insertMany([
+      { chat_id: newChat._id, user_id },
+      { chat_id: newChat._id, user_id: recipient_id },
+    ]);
 
     return res.json(newChat);
   } catch (error) {
