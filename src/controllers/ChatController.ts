@@ -23,7 +23,13 @@ export const getMyChats = async (req: Request, res: Response) => {
       user_id: authUser._id,
       left_at: null,
     })
-      .populate("chat_id")
+      .populate({
+        path: "chat_id",
+        populate: {
+          path: "groupMetaData.created_by",
+          select: "_id username email avatar_url display_name",
+        },
+      })
       .lean();
 
     const validParticipants = chatParticipants.filter((c) => c.chat_id != null);
@@ -161,6 +167,10 @@ export const createGroup = async (req: Request, res: Response) => {
     const [, contactMap] = await Promise.all([
       ChatParticipants.insertMany(participantsToInsert),
       buildContactMap(authUser._id),
+      group.populate({
+        path: "groupMetaData.created_by",
+        select: "_id username email avatar_url display_name",
+      }),
     ]);
 
     const participants = await ChatParticipants.find({ chat_id: group._id })
@@ -210,7 +220,13 @@ export const getChatById = async (req: Request, res: Response) => {
       left_at: null,
       chat_id,
     })
-      .populate("chat_id")
+      .populate({
+        path: "chat_id",
+        populate: {
+          path: "groupMetaData.created_by",
+          select: "_id username email avatar_url display_name",
+        },
+      })
       .lean();
 
     if (!chatParticipant)
