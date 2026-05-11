@@ -1,6 +1,6 @@
 import { AuthUser } from "@/types/user.types";
 import { Request, NextFunction, Response } from "express";
-import jwt from "jsonwebtoken";
+import jwt, { TokenExpiredError } from "jsonwebtoken";
 import BlockedToken from "@/models/BlockedToken";
 
 export const authMiddleware = async (
@@ -37,8 +37,20 @@ export const authMiddleware = async (
     next();
   } catch (error) {
     console.log("Auth Middleware Error", error);
+    // Access token expired
+    if (error instanceof TokenExpiredError) {
+      return response.status(401).json({
+        message: "Access token expired",
+        code: "ACCESS_TOKEN_EXPIRED",
+      });
+    }
+
+    // Any other JWT or auth-related error
     const { message } = error as { message: string };
-    return response.status(401).json({ message: message || "Unauthorized" });
+
+    return response.status(401).json({
+      message: message || "Unauthorized",
+    });
   }
 };
 
