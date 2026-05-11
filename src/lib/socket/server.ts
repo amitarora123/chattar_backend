@@ -110,6 +110,7 @@ export const registerSocketHandlers = (io: IOType): void => {
           updatedAt: message.updatedAt,
           is_edited: message.is_edited,
           is_deleted: message.is_deleted,
+          attachment: message.attachment,
           sender: {
             user: {
               _id: message.sender_id?._id?.toString(),

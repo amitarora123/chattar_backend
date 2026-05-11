@@ -51,6 +51,7 @@ export const sendMessage = async (req: Request, res: Response) => {
       updatedAt: message.updatedAt,
       is_edited: message.is_edited,
       is_deleted: message.is_deleted,
+      attachment: message.attachment,
       sender: {
         user: {
           _id: message.sender_id?._id?.toString(),
