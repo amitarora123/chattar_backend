@@ -2,8 +2,8 @@ import { Router } from "express";
 import {
   checkUsername,
   searchUsers,
-  updateCurrentUser,
-  getCurrentUser,
+  updateMe,
+  getMe,
 } from "@/controllers/UserController";
 import {
   authMiddleware,
@@ -11,8 +11,8 @@ import {
 } from "@/middleware/auth.middleware";
 import { validate } from "@/middleware/validate.middleware";
 import {
+  updateMeSchema,
   searchUsersSchema,
-  updateCurrentUserSchema,
 } from "@/validators/user.validators";
 
 const UserRoutes = Router();
@@ -141,12 +141,7 @@ UserRoutes.get(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.patch(
-  "/me",
-  authMiddleware,
-  validate(updateCurrentUserSchema),
-  updateCurrentUser,
-);
+UserRoutes.patch("/me", authMiddleware, validate(updateMeSchema), updateMe);
 
 /**
  * @openapi
@@ -194,6 +189,6 @@ UserRoutes.patch(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-UserRoutes.get("/me", authMiddleware, getCurrentUser);
+UserRoutes.get("/me", authMiddleware, getMe);
 
 export default UserRoutes;

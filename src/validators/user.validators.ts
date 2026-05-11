@@ -7,9 +7,9 @@ export const searchUsersSchema = z.object({
   }),
 });
 
-export const updateCurrentUserSchema = z.object({
+export const updateMeSchema = z.object({
   body: z.object({
-    name: z.string().min(1, "Name is required"),
+    name: z.string(),
     avatar_url: z.string(),
     is_active: z.boolean(),
   }),

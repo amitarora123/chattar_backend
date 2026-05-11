@@ -67,7 +67,7 @@ export const searchUsers = async (req: Request, res: Response) => {
 };
 
 // PATCH /api/user/me
-export const updateCurrentUser = async (req: Request, res: Response) => {
+export const updateMe = async (req: Request, res: Response) => {
   const { name, avatar_url, is_active } = req.body;
   const { _id } = req.authUser || {};
 
@@ -93,7 +93,7 @@ export const updateCurrentUser = async (req: Request, res: Response) => {
 };
 
 // GET /api/user/me
-export const getCurrentUser = async (req: Request, res: Response) => {
+export const getMe = async (req: Request, res: Response) => {
   const { _id } = req.authUser!;
 
   try {
