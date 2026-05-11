@@ -19,7 +19,7 @@ dotenv.config();
 const PORT = process.env.PORT || 8000;
 const app = express();
 
-const allowedHosts: string[] = process.env.ALLOWED_HOSTS?.split(",") ?? [];
+const allowedHosts = process.env.ALLOWED_HOSTS?.split(",") || "*";
 
 app.use(
   cors({

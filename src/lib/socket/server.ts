@@ -19,6 +19,8 @@ type IOType = IOServer<
 
 let io: IOType;
 
+const allowedHosts = process.env.ALLOWED_HOSTS?.split(",") || "*";
+
 export const initSocket = (server: HTTPServer) => {
   io = new IOServer<
     ClientToServerEvents,
@@ -27,7 +29,7 @@ export const initSocket = (server: HTTPServer) => {
     SocketData
   >(server, {
     cors: {
-      origin: process.env.FRONTEND_URL,
+      origin: allowedHosts,
       credentials: true,
     },
   });

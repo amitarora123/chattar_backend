@@ -196,7 +196,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
       sendResetPasswordEmail(
         user.email,
-        `${process.env.FRONTEND_URL}/auth/reset-password?token=${token}`,
+        `https://chattar-frontend-wusw.vercel.app/auth/reset-password?token=${token}`,
       );
     }
 
