@@ -205,6 +205,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
         updatedAt: msg.updatedAt,
         is_edited: msg.is_edited,
         is_deleted: msg.is_deleted,
+        attachment: msg.attachment,
         sender: {
           user: {
             _id: senderId,
