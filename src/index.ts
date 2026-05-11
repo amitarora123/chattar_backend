@@ -19,10 +19,12 @@ dotenv.config();
 const PORT = process.env.PORT || 8000;
 const app = express();
 
+const allowedHosts: string[] = process.env.ALLOWED_HOSTS?.split(",") ?? [];
+
 app.use(
   cors({
     credentials: true,
-    origin: process.env.FRONTEND_URL,
+    origin: allowedHosts,
   }),
 );
 

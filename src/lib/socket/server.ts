@@ -7,7 +7,7 @@ import {
   InterServerEvents,
   SocketData,
 } from "@/types/socket.types";
-import { Chat, ChatParticipants } from "@/models/Chat";
+import { ChatParticipants } from "@/models/Chat";
 import { Message } from "@/models/Message";
 
 type IOType = IOServer<
