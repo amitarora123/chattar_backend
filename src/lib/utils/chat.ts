@@ -41,6 +41,7 @@ export async function getLastMessages(chatIds: unknown[]) {
           content: "$lastMessage.content",
           chat_id: "$lastMessage.chat_id",
           createdAt: "$lastMessage.createdAt",
+          attachment: "$lastMessage.attachment",
           sender: {
             _id: "$sender._id",
             username: "$sender.username",
