@@ -8,7 +8,7 @@ import {
   SocketData,
 } from "@/types/socket.types";
 import { ChatParticipants } from "@/models/Chat";
-import { Message } from "@/models/Message";
+import { Message, MessageView } from "@/models/Message";
 
 type IOType = IOServer<
   ClientToServerEvents,
@@ -77,6 +77,37 @@ export const registerSocketHandlers = (io: IOType): void => {
       socket.to(room).emit("typing:stop", { userId });
     });
 
+    socket.on(
+      "message:seen",
+      async ({ room, chat_id, userId, message_id }, callback) => {
+        try {
+          const participant = await ChatParticipants.exists({
+            chat_id: chat_id,
+            user_id: userId,
+            left_at: null,
+          });
+
+          if (!participant) return callback({ error: "Not a participant" });
+
+          const seen = await MessageView.create({
+            message_id: message_id,
+            participant_id: participant._id,
+          });
+
+          socket.to(room).emit("message:new_seen", {
+            message_id,
+            seen_at: seen.viewed_at,
+            participant_id: participant._id.toString(),
+          });
+
+          callback({ data: seen });
+        } catch (error) {
+          const { message } = error as { message: string };
+          callback({ error: message || "Failed to send message" });
+        }
+      },
+    );
+
     socket.on("message:send", async (data, callback) => {
       try {
         const isMember = await ChatParticipants.exists({
@@ -111,6 +142,7 @@ export const registerSocketHandlers = (io: IOType): void => {
           is_edited: message.is_edited,
           is_deleted: message.is_deleted,
           attachment: message.attachment,
+          seen: [],
           sender: {
             user: {
               _id: message.sender_id?._id?.toString(),

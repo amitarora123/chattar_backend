@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Types } from 'mongoose';
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface IMessageAttachment {
   file_url: string;
@@ -16,16 +16,53 @@ export interface IMessage extends Document {
   attachment?: IMessageAttachment;
 }
 
-export interface IMessageReads extends Document {
-  message_id: Types.ObjectId;
-  participant_id: Types.ObjectId;
-}
-
 export interface IMessageReactions extends Document {
   message_id: Types.ObjectId;
   participant_id: Types.ObjectId;
   reaction: string;
 }
+
+export interface IMessageViews extends Document {
+  message_id: Types.ObjectId;
+  participant_id: Types.ObjectId;
+  viewed_at: Date;
+}
+
+const messageViewsSchema = new Schema<IMessageViews>(
+  {
+    message_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Message",
+      required: true,
+    },
+    participant_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    viewed_at: {
+      type: Date,
+      default: Date.now,
+      required: true,
+    },
+  },
+  {
+    timestamps: false,
+  },
+);
+
+// Useful for fetching all viewers of a message
+messageViewsSchema.index({ message_id: 1 });
+
+// Prevent duplicate view records for the same user and message
+messageViewsSchema.index(
+  { message_id: 1, participant_id: 1 },
+  { unique: true },
+);
+
+export const MessageView =
+  mongoose.models.MessageView ||
+  mongoose.model<IMessageViews>("MessageView", messageViewsSchema);
 
 const messageAttachmentSchema = new Schema<IMessageAttachment>(
   {
@@ -42,21 +79,21 @@ const messageSchema = new Schema<IMessage>(
   {
     chat_id: {
       type: Schema.Types.ObjectId,
-      ref: 'Chat',
+      ref: "Chat",
       required: true,
     },
     sender_id: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     content: {
       type: String,
-      default: '',
+      default: "",
     },
     reply_to_id: {
       type: Schema.Types.ObjectId,
-      ref: 'Message',
+      ref: "Message",
       required: false,
     },
     is_edited: {
@@ -79,35 +116,15 @@ const messageSchema = new Schema<IMessage>(
 
 messageSchema.index({ chat_id: 1, createdAt: -1 });
 
-const messageReadsSchema = new Schema<IMessageReads>({
-  participant_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  message_id: {
-    type: Schema.Types.ObjectId,
-    ref: 'Message',
-    required: true,
-  },
-});
-
-messageReadsSchema.index({ message_id: 1 });
-
-messageReadsSchema.index(
-  { message_id: 1, participant_id: 1 },
-  { unique: true },
-);
-
 const messageReactionSchema = new Schema<IMessageReactions>({
   message_id: {
     type: Schema.Types.ObjectId,
-    ref: 'Message',
+    ref: "Message",
     required: true,
   },
   participant_id: {
     type: Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   },
   reaction: {
@@ -124,12 +141,8 @@ messageReactionSchema.index(
 );
 
 export const Message =
-  mongoose.models.Message || mongoose.model('Message', messageSchema);
-
-export const MessageRead =
-  mongoose.models.MessageRead ||
-  mongoose.model('MessageRead', messageReadsSchema);
+  mongoose.models.Message || mongoose.model("Message", messageSchema);
 
 export const MessageReaction =
   mongoose.models.MessageReaction ||
-  mongoose.model('MessageReaction', messageReactionSchema);
+  mongoose.model("MessageReaction", messageReactionSchema);

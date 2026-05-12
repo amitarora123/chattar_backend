@@ -10,6 +10,7 @@ export interface Message {
   updatedAt: string;
   is_edited: boolean;
   is_deleted: boolean;
+  seen: MessageSeen[];
 }
 export interface SendMessageProps {
   chat_id?: string;
@@ -24,4 +25,9 @@ export interface MessageAttachment {
   file_url: string;
   file_type: string;
   file_size: number;
+}
+
+export interface MessageSeen {
+  participant_id: string;
+  viewed_at: string;
 }

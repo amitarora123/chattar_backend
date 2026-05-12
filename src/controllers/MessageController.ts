@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Chat, ChatParticipants } from "@/models/Chat";
-import { Message } from "@/models/Message";
+import { Message, MessageView } from "@/models/Message";
 import mongoose, { isValidObjectId } from "mongoose";
 import { getIO } from "@/lib/socket/server";
 import { buildContactMap } from "@/lib/utils/chat";
@@ -52,6 +52,7 @@ export const sendMessage = async (req: Request, res: Response) => {
       is_edited: message.is_edited,
       is_deleted: message.is_deleted,
       attachment: message.attachment,
+      seen: [],
       sender: {
         user: {
           _id: message.sender_id?._id?.toString(),
@@ -193,12 +194,46 @@ export const getChatMessages = async (req: Request, res: Response) => {
       .sort({ createdAt: 1 })
       .lean();
 
+    // Get all message IDs
+    const messageIds = messages.map((msg) => msg._id);
+
+    // Fetch all seen records for these messages
+    const messageViews = await MessageView.find({
+      message_id: { $in: messageIds },
+    })
+      .select("message_id participant_id viewed_at")
+      .lean();
+
+    // Group views by message_id
+    const viewsMap = new Map<
+      string,
+      {
+        participant_id: string;
+        viewed_at: Date;
+      }[]
+    >();
+
+    for (const view of messageViews) {
+      const messageId = view.message_id.toString();
+
+      if (!viewsMap.has(messageId)) {
+        viewsMap.set(messageId, []);
+      }
+
+      viewsMap.get(messageId)!.push({
+        participant_id: view.participant_id.toString(),
+        viewed_at: view.viewed_at,
+      });
+    }
+
     const contactMap = await buildContactMap(authUser._id);
 
     const formattedMessages = messages.map((msg) => {
       const senderId = msg.sender_id?._id?.toString();
+      const messageId = msg._id.toString();
+
       return {
-        _id: msg._id.toString(),
+        _id: messageId,
         content: msg.content,
         chat_id: msg.chat_id.toString(),
         createdAt: msg.createdAt,
@@ -206,6 +241,10 @@ export const getChatMessages = async (req: Request, res: Response) => {
         is_edited: msg.is_edited,
         is_deleted: msg.is_deleted,
         attachment: msg.attachment,
+
+        // Seen information
+        seen: viewsMap.get(messageId) ?? [],
+
         sender: {
           user: {
             _id: senderId,
