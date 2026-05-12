@@ -99,7 +99,7 @@ export const registerSocketHandlers = (io: IOType): void => {
 
           const seen = await MessageView.create({
             message_id: message_id,
-            participant_id: userId,
+            user_id: userId,
           });
 
           socket.to(room).emit("message:new_seen", {

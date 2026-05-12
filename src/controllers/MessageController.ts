@@ -201,7 +201,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
     const messageViews = await MessageView.find({
       message_id: { $in: messageIds },
     })
-      .select("message_id participant_id viewed_at")
+      .select("message_id user_id viewed_at")
       .lean();
 
     // Group views by message_id
@@ -221,7 +221,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
       }
 
       viewsMap.get(messageId)!.push({
-        participant_id: view.participant_id.toString(),
+        participant_id: view.user_id.toString(),
         viewed_at: view.viewed_at,
       });
     }
@@ -294,7 +294,7 @@ export const viewMessage = async (req: Request, res: Response) => {
       });
     }
 
-    const messageView = MessageView.create({
+    const messageView = await MessageView.create({
       user_id: authUser._id,
       message_id,
     });

@@ -55,10 +55,7 @@ const messageViewsSchema = new Schema<IMessageViews>(
 messageViewsSchema.index({ message_id: 1 });
 
 // Prevent duplicate view records for the same user and message
-messageViewsSchema.index(
-  { message_id: 1, participant_id: 1 },
-  { unique: true },
-);
+messageViewsSchema.index({ message_id: 1, user_id: 1 }, { unique: true });
 
 export const MessageView =
   mongoose.models.MessageView ||
