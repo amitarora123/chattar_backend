@@ -24,7 +24,7 @@ export interface IMessageReactions extends Document {
 
 export interface IMessageViews extends Document {
   message_id: Types.ObjectId;
-  participant_id: Types.ObjectId;
+  user_id: Types.ObjectId;
   viewed_at: Date;
 }
 
@@ -35,7 +35,7 @@ const messageViewsSchema = new Schema<IMessageViews>(
       ref: "Message",
       required: true,
     },
-    participant_id: {
+    user_id: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,

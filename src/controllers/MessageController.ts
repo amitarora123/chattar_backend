@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Chat, ChatParticipants } from "@/models/Chat";
-import { Message, MessageView } from "@/models/Message";
+import { IMessage, Message, MessageView } from "@/models/Message";
 import mongoose, { isValidObjectId } from "mongoose";
 import { getIO } from "@/lib/socket/server";
 import { buildContactMap } from "@/lib/utils/chat";
@@ -264,5 +264,49 @@ export const getChatMessages = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: message || "Internal Server Error" });
+  }
+};
+
+export const viewMessage = async (req: Request, res: Response) => {
+  try {
+    const message_id = req.params.message_id;
+    const authUser = req.authUser!;
+
+    const message: IMessage | null = await Message.findById(message_id);
+
+    if (!message) {
+      return res.status(404).json({
+        message: "message not found",
+      });
+    }
+
+    const chat_id = message.chat_id;
+
+    const chatParticipant = await ChatParticipants.findOne({
+      chat_id,
+      user_id: authUser._id,
+      left_at: null,
+    });
+
+    if (!chatParticipant) {
+      return res.status(403).json({
+        message: "User is not participant of the chat",
+      });
+    }
+
+    const messageView = MessageView.create({
+      user_id: authUser._id,
+      message_id,
+    });
+
+    return res.status(201).json(messageView);
+  } catch (error) {
+    const { message } = error as { message: string };
+
+    console.log("Error while viewing message: ", message);
+
+    return res.status(500).json({
+      message: message || "Internal Server Error",
+    });
   }
 };

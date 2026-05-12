@@ -79,8 +79,16 @@ export const registerSocketHandlers = (io: IOType): void => {
 
     socket.on(
       "message:seen",
-      async ({ room, chat_id, userId, message_id }, callback) => {
+      async ({ room, userId, message_id }, callback) => {
         try {
+          const message = await Message.findById(message_id);
+
+          if (!message) {
+            return callback({ error: "Message not found" });
+          }
+
+          const chat_id = message.chat_id;
+
           const participant = await ChatParticipants.exists({
             chat_id: chat_id,
             user_id: userId,
@@ -91,13 +99,13 @@ export const registerSocketHandlers = (io: IOType): void => {
 
           const seen = await MessageView.create({
             message_id: message_id,
-            participant_id: participant._id,
+            participant_id: userId,
           });
 
           socket.to(room).emit("message:new_seen", {
             message_id,
             seen_at: seen.viewed_at,
-            participant_id: participant._id.toString(),
+            userId,
           });
 
           callback({ data: seen });

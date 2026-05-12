@@ -10,7 +10,7 @@ export interface ServerToClientEvents {
   "message:new": (message: Message) => void;
   "message:new_seen": (data: {
     message_id: string;
-    participant_id: string;
+    userId: string;
     seen_at: string;
   }) => void;
 }
@@ -34,7 +34,7 @@ export interface ClientToServerEvents {
   ) => void;
 
   "message:seen": (
-    data: { room: string; userId: string; chat_id: string; message_id: string },
+    data: { room: string; userId: string; message_id: string },
     callback: (response: { error?: string; data?: MessageSeen }) => void,
   ) => void;
 }
