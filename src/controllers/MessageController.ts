@@ -208,7 +208,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
     const viewsMap = new Map<
       string,
       {
-        participant_id: string;
+        user_id: string;
         viewed_at: Date;
       }[]
     >();
@@ -221,7 +221,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
       }
 
       viewsMap.get(messageId)!.push({
-        participant_id: view.user_id.toString(),
+        user_id: view.user_id.toString(),
         viewed_at: view.viewed_at,
       });
     }
