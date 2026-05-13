@@ -198,7 +198,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
 
     const messages = await Message.find(messageQuery)
       .populate("sender_id", "username avatar_url")
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .skip(parsedOffset)
       .limit(parsedLimit)
       .lean();
