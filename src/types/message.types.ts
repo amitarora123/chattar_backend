@@ -28,6 +28,6 @@ export interface MessageAttachment {
 }
 
 export interface MessageSeen {
-  participant_id: string;
+  user_id: string;
   viewed_at: string;
 }

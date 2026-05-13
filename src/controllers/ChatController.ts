@@ -11,6 +11,7 @@ import {
   formatLastMessageSender,
   getChatKey,
   getLastMessages,
+  getUnreadCounts,
 } from "@/lib/utils/chat";
 import User, { IUser } from "@/models/User";
 
@@ -38,16 +39,22 @@ export const getMyChats = async (req: Request, res: Response) => {
       ]),
     );
 
-    const [allParticipants, contactMap, lastMessages] = await Promise.all([
-      ChatParticipants.find({ chat_id: { $in: chatIds } })
-        .populate("user_id")
-        .lean(),
-      buildContactMap(authUser._id),
-      getLastMessages(chatIds),
-    ]);
+    const [allParticipants, contactMap, lastMessages, unreadCounts] =
+      await Promise.all([
+        ChatParticipants.find({ chat_id: { $in: chatIds } })
+          .populate("user_id")
+          .lean(),
+        buildContactMap(authUser._id),
+        getLastMessages(chatIds),
+        getUnreadCounts(chatIds, new Types.ObjectId(authUser._id)),
+      ]);
 
     const lastMessageMap = new Map(
       lastMessages.map((m) => [m._id.toString(), m.lastMessage]),
+    );
+
+    const unreadCountMap = new Map(
+      unreadCounts.map((u) => [u._id.toString(), u.unread_count]),
     );
 
     const participantsByChatId = new Map<string, typeof allParticipants>();
@@ -112,6 +119,7 @@ export const getMyChats = async (req: Request, res: Response) => {
               }
             : undefined,
         last_message: lastMessage,
+        unread_count: unreadCountMap.get(chat._id.toString()) ?? 0,
         participants: formattedParticipants,
         createdAt: chat.createdAt,
         updatedAt: chat.updatedAt,
