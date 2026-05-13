@@ -4,6 +4,13 @@ export const getChatMessagesSchema = z.object({
   params: z.object({
     chat_id: z.string().min(1, "chat_id is required"),
   }),
+  query: z.object({
+    limit: z.coerce.number().min(1, "minimum 1 limit is required").optional(),
+    offset: z.coerce
+      .number()
+      .min(0, "offset should be non-negative")
+      .optional(),
+  }),
 });
 
 export const sendMessageSchema = z.object({

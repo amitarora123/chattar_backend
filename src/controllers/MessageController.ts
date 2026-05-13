@@ -161,6 +161,11 @@ export const getChatMessages = async (req: Request, res: Response) => {
     const chat_id = req.params.chat_id;
     const authUser = req.authUser!;
 
+    const { offset, limit } = req.query;
+
+    const parsedOffset = Number(offset) || 0;
+    const parsedLimit = Number(limit) || 30;
+
     const chat = await Chat.findById(chat_id);
 
     if (!chat)
@@ -202,6 +207,8 @@ export const getChatMessages = async (req: Request, res: Response) => {
       message_id: { $in: messageIds },
     })
       .select("message_id user_id viewed_at")
+      .skip(parsedOffset)
+      .limit(parsedLimit)
       .lean();
 
     // Group views by message_id
