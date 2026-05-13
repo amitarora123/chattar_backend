@@ -237,7 +237,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
 
     const contactMap = await buildContactMap(authUser._id);
 
-    const formattedMessages = messages.map((msg) => {
+    const formattedMessages = messages.reverse().map((msg) => {
       const senderId = msg.sender_id?._id?.toString();
       const messageId = msg._id.toString();
 
