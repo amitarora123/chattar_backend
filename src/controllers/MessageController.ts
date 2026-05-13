@@ -194,9 +194,13 @@ export const getChatMessages = async (req: Request, res: Response) => {
       messageQuery.createdAt = { $gt: chatParticipant.cleared_at };
     }
 
+    const total = await Message.countDocuments(messageQuery);
+
     const messages = await Message.find(messageQuery)
       .populate("sender_id", "username avatar_url")
       .sort({ createdAt: 1 })
+      .skip(parsedOffset)
+      .limit(parsedLimit)
       .lean();
 
     // Get all message IDs
@@ -207,8 +211,6 @@ export const getChatMessages = async (req: Request, res: Response) => {
       message_id: { $in: messageIds },
     })
       .select("message_id user_id viewed_at")
-      .skip(parsedOffset)
-      .limit(parsedLimit)
       .lean();
 
     // Group views by message_id
@@ -264,7 +266,15 @@ export const getChatMessages = async (req: Request, res: Response) => {
       };
     });
 
-    return res.status(200).json(formattedMessages);
+    return res.status(200).json({
+      data: formattedMessages,
+      pagination: {
+        total,
+        limit: parsedLimit,
+        offset: parsedOffset,
+        hasMore: parsedOffset + parsedLimit < total, // 👈
+      },
+    });
   } catch (error) {
     console.log("Error fetching messages:", error);
     const { message } = error as { message: string };
