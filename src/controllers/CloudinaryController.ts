@@ -13,7 +13,7 @@ export const signUploadImage = async (_req: Request, res: Response) => {
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp, upload_preset: "chat-attachments-images" },
+      { timestamp, upload_preset: "chattar-attachments-images" },
       process.env.CLOUDINARY_APISECRET!,
     );
 
@@ -22,7 +22,7 @@ export const signUploadImage = async (_req: Request, res: Response) => {
       signature,
       api_key: process.env.CLOUDINARY_APIKEY,
       cloud_name: process.env.CLOUDINARY_CLOUDNAME,
-      upload_preset: "chat-attachments-images",
+      upload_preset: "chattar-attachments-images",
     });
   } catch (error) {
     console.log("Error Signing upload url:", error);
@@ -38,7 +38,7 @@ export const signUploadDoc = async (_req: Request, res: Response) => {
     const timestamp = Math.floor(Date.now() / 1000);
 
     const signature = cloudinary.utils.api_sign_request(
-      { timestamp, upload_preset: "chat-attachments-docs" },
+      { timestamp, upload_preset: "chattar-attachments-docs" },
       process.env.CLOUDINARY_APISECRET!,
     );
 
@@ -47,7 +47,7 @@ export const signUploadDoc = async (_req: Request, res: Response) => {
       signature,
       api_key: process.env.CLOUDINARY_APIKEY,
       cloud_name: process.env.CLOUDINARY_CLOUDNAME,
-      upload_preset: "chat-attachments-docs",
+      upload_preset: "chattar-attachments-docs",
     });
   } catch (error) {
     console.log("Error Signing upload url:", error);
