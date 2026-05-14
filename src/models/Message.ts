@@ -4,6 +4,7 @@ export interface IMessageAttachment {
   file_url: string;
   file_type: string;
   file_size: number;
+  file_name: string;
 }
 
 export interface IMessage extends Document {
