@@ -78,11 +78,13 @@ export const registerSocketHandlers = (io: IOType): void => {
     });
 
     socket.on("typing:start", ({ room, userId }) => {
-      socket.to(room).emit("typing:start", { userId });
+      const chat_id = room.replace("chat:", "");
+      socket.to(room).emit("typing:start", { userId, chat_id });
     });
 
     socket.on("typing:stop", ({ room, userId }) => {
-      socket.to(room).emit("typing:stop", { userId });
+      const chat_id = room.replace("chat:", "");
+      socket.to(room).emit("typing:stop", { userId, chat_id });
     });
 
     socket.on(

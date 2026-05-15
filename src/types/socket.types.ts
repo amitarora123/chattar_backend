@@ -5,8 +5,8 @@ export interface ServerToClientEvents {
   "presence:initial": (users: string[]) => void;
   "user:online": (userId: string) => void;
   "user:offline": (userId: string) => void;
-  "typing:start": (data: { userId: string }) => void;
-  "typing:stop": (data: { userId: string }) => void;
+  "typing:start": (data: { userId: string; chat_id: string }) => void;
+  "typing:stop": (data: { userId: string; chat_id: string }) => void;
   "message:new": (message: Message) => void;
   "message:new_seen": (data: {
     message_id: string;
