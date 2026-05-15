@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { Chat, ChatParticipants } from "@/models/Chat";
 import { IMessage, Message, MessageView } from "@/models/Message";
 import mongoose, { isValidObjectId } from "mongoose";
-import { getIO } from "@/lib/socket/server";
 import { buildContactMap } from "@/lib/utils/chat";
 
 // POST /api/messages
@@ -41,8 +40,6 @@ export const sendMessage = async (req: Request, res: Response) => {
 
     await message.populate("sender_id", "username avatar_url");
 
-    const io = getIO();
-
     const formattedMessage = {
       _id: message._id.toString(),
       content: message.content,
@@ -63,12 +60,6 @@ export const sendMessage = async (req: Request, res: Response) => {
         contactName: null,
       },
     };
-
-    if (chat.is_group) {
-      io.to(`chat:${chat._id}`).emit("message:new", formattedMessage);
-    } else {
-      io.to(`chat:${chat.chat_key}`).emit("message:new", formattedMessage);
-    }
 
     return res.status(201).json({
       message: "Message sent successfully",
@@ -106,13 +97,37 @@ export const updateMessage = async (req: Request, res: Response) => {
 
     const updatedMessage = await Message.findByIdAndUpdate(
       message_id,
-      { content },
+      { content, is_edited: true },
       { new: true },
-    );
+    ).populate("sender_id", "_id username display_name avatar_url last_seen");
 
+    const chat_id = message.chat_id.toString();
+
+    const formattedMessage = {
+      _id: updatedMessage!._id.toString(),
+      content: updatedMessage!.content,
+      chat_id,
+      createdAt: updatedMessage!.createdAt,
+      updatedAt: updatedMessage!.updatedAt,
+      is_edited: updatedMessage!.is_edited,
+      is_deleted: updatedMessage!.is_deleted,
+      attachment: updatedMessage!.attachment,
+      seen: [],
+      sender: {
+        user: {
+          _id: updatedMessage!.sender_id?._id?.toString(),
+          username: updatedMessage!.sender_id?.username,
+          display_name: updatedMessage!.sender_id?.display_name ?? null,
+          avatar_url: updatedMessage!.sender_id?.avatar_url ?? null,
+          last_seen: updatedMessage!.sender_id?.last_seen ?? null,
+        },
+        isContact: false,
+        contactName: null,
+      },
+    };
     return res.status(200).json({
       message: "message updated successfully",
-      ...updatedMessage,
+      data: formattedMessage,
     });
   } catch (error) {
     console.log("message Update Error:", error);

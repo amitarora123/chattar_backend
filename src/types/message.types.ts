@@ -11,6 +11,7 @@ export interface Message {
   is_edited: boolean;
   is_deleted: boolean;
   seen: MessageSeen[];
+  reply_to?: ReplyMessage | null;
 }
 export interface SendMessageProps {
   chat_id?: string;
@@ -30,4 +31,17 @@ export interface MessageAttachment {
 export interface MessageSeen {
   user_id: string;
   viewed_at: string;
+}
+
+export interface ReplyMessage {
+  _id: string;
+  content: string;
+  is_deleted: boolean;
+  attachment?: MessageAttachment | null;
+  sender: {
+    _id: string | null;
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
 }
