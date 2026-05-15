@@ -61,6 +61,14 @@ export const registerSocketHandlers = (io: IOType): void => {
 
     onlineUsers.get(userId)!.add(socket.id);
 
+    ChatParticipants.find({ user_id: userId, left_at: null }, { chat_id: 1 })
+      .lean()
+      .then((participations) => {
+        const rooms = participations.map((p) => `chat:${p.chat_id}`);
+        socket.join(rooms);
+      })
+      .catch((err) => console.error("Failed to auto-join chat rooms:", err));
+
     socket.emit("presence:initial", Array.from(onlineUsers.keys()));
 
     socket.broadcast.emit("user:online", userId);
