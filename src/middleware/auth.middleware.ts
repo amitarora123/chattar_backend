@@ -1,4 +1,4 @@
-import { AuthUser } from "@/types/user.types";
+import { User as AuthUser } from "@/types/user.types";
 import { Request, NextFunction, Response } from "express";
 import jwt, { TokenExpiredError } from "jsonwebtoken";
 import BlockedToken from "@/models/BlockedToken";

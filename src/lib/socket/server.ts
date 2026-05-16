@@ -1,6 +1,6 @@
 import { Server as IOServer } from "socket.io";
 import { Server as HTTPServer } from "http";
-import { isValidObjectId, Types } from "mongoose";
+import { isValidObjectId } from "mongoose";
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -9,32 +9,7 @@ import {
 } from "@/types/socket.types";
 import { ChatParticipants } from "@/models/Chat";
 import { Message, MessageView } from "@/models/Message";
-
-type PopulatedUser = {
-  _id: Types.ObjectId;
-  username: string;
-  display_name?: string | null;
-  avatar_url?: string | null;
-  last_seen?: Date | null;
-};
-
-type ReplyToDoc = {
-  _id: Types.ObjectId;
-  content: string;
-  is_deleted: boolean;
-  attachment?: {
-    file_url: string;
-    file_type: string;
-    file_size: number;
-    file_name: string;
-  } | null;
-  sender_id: {
-    _id: Types.ObjectId;
-    username: string;
-    display_name?: string | null;
-    avatar_url?: string | null;
-  } | null;
-};
+import { Sender } from "@/types/message.types";
 
 type IOType = IOServer<
   ClientToServerEvents,
@@ -162,6 +137,8 @@ export const registerSocketHandlers = (io: IOType): void => {
 
         if (!isMember) return callback({ error: "Not a participant" });
 
+        //TODO:check if reply_to exists or not
+
         const message = await Message.create({
           chat_id: data.chat_id,
           sender_id: userId,
@@ -172,10 +149,7 @@ export const registerSocketHandlers = (io: IOType): void => {
           attachment: data.attachment,
         });
 
-        await message.populate(
-          "sender_id",
-          "_id username display_name avatar_url last_seen",
-        );
+        await message.populate("sender_id", "_id username avatar_url");
 
         if (isValidObjectId(data.reply_to)) {
           await message.populate({
@@ -183,14 +157,14 @@ export const registerSocketHandlers = (io: IOType): void => {
             select: "_id content is_deleted attachment sender_id",
             populate: {
               path: "sender_id",
-              select: "_id username display_name avatar_url",
+              select: "_id username avatar_url",
             },
           });
         }
 
-        const sender = message.sender_id as PopulatedUser;
+        const sender = message.sender_id as Sender;
         const replyTo = isValidObjectId(data.reply_to)
-          ? (message.reply_to_id as ReplyToDoc)
+          ? message.reply_to_id
           : null;
 
         const formattedMessage = {
@@ -218,13 +192,9 @@ export const registerSocketHandlers = (io: IOType): void => {
               }
             : null,
           sender: {
-            user: {
-              _id: sender._id?.toString(),
-              username: sender.username,
-              display_name: sender.display_name ?? null,
-              avatar_url: sender.avatar_url ?? null,
-              last_seen: sender.last_seen?.toISOString() ?? null,
-            },
+            _id: sender._id?.toString(),
+            username: sender.username,
+            avatar_url: sender.avatar_url ?? null,
           },
         };
 
@@ -245,13 +215,18 @@ export const registerSocketHandlers = (io: IOType): void => {
           { _id: message_id, sender_id: userId },
           { content, is_edited: true },
           { new: true },
-        ).populate<{ sender_id: PopulatedUser }>(
+        ).populate<{ sender_id: Sender }>(
           "sender_id",
-          "_id username display_name avatar_url last_seen",
+          "_id username avatar_url ",
         );
 
         if (!updated)
           return ack({ error: "Message not found or not authorized" });
+
+        // find message seen
+        const seen = await MessageView.find({
+          message_id,
+        }).select("user_id viewed_at");
 
         const formattedMessage = {
           _id: updated._id.toString(),
@@ -262,15 +237,11 @@ export const registerSocketHandlers = (io: IOType): void => {
           is_edited: updated.is_edited,
           is_deleted: updated.is_deleted,
           attachment: updated.attachment,
-          seen: [],
+          seen,
           sender: {
-            user: {
-              _id: updated.sender_id._id?.toString(),
-              username: updated.sender_id.username,
-              display_name: updated.sender_id.display_name ?? null,
-              avatar_url: updated.sender_id.avatar_url ?? null,
-              last_seen: updated.sender_id.last_seen?.toISOString() ?? null,
-            },
+            _id: updated.sender_id._id?.toString(),
+            username: updated.sender_id.username,
+            avatar_url: updated.sender_id.avatar_url ?? null,
           },
         };
 

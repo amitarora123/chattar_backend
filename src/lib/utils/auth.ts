@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import User, { IUser } from "@/models/User";
 import { sendOtp } from "./email";
 import jwt from "jsonwebtoken";
-import { AuthUser } from "@/types/user.types";
+import { User as AuthUser } from "@/types/user.types";
 
 export async function generateUniqueUsername(base: string): Promise<string> {
   let username = base;

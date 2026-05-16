@@ -12,7 +12,7 @@ import {
 } from "@/lib/utils/auth";
 import { sendOtp, sendResetPasswordEmail } from "@/lib/utils/email";
 import jwt from "jsonwebtoken";
-import { AuthUser } from "@/types/user.types";
+import { User as AuthUser } from "@/types/user.types";
 import BlockedToken from "@/models/BlockedToken";
 
 const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
@@ -88,9 +88,11 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const userDetails = {
+    const userDetails: AuthUser = {
       _id: user._id.toString(),
       username: user.username,
+      avatar_url: user.avatar_url || "",
+      display_name: user.display_name || "",
       email: user.email,
     };
 
@@ -146,12 +148,13 @@ export const googleLogin = async (req: Request, res: Response) => {
       });
     }
 
-    const userDetails = {
-      _id: user._id,
+    const userDetails: AuthUser = {
+      _id: user._id.toString(),
       username: user.username,
+      avatar_url: user.avatar_url || "",
+      display_name: user.display_name || "",
       email: user.email,
     };
-
     const refreshToken = generateRefreshToken(userDetails);
     const accessToken = generateAccessToken(userDetails);
 
@@ -355,12 +358,13 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const userDetails = {
-      _id: decodedToken._id,
-      email: decodedToken.email,
-      username: decodedToken.username,
+    const userDetails: AuthUser = {
+      _id: user._id.toString(),
+      username: user.username,
+      avatar_url: user.avatar_url || "",
+      display_name: user.display_name || "",
+      email: user.email,
     };
-
     const accessToken = generateAccessToken(userDetails);
     const newRefreshToken = generateRefreshToken(userDetails);
 
