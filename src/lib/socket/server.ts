@@ -108,18 +108,25 @@ export const registerSocketHandlers = (io: IOType): void => {
 
           if (!participant) return callback({ error: "Not a participant" });
 
-          const seen = await MessageView.create({
-            message_id: message_id,
-            user_id: userId,
-          });
+          const seen = await MessageView.findOneAndUpdate(
+            { message_id, user_id: userId },
+            {
+              $setOnInsert: {
+                message_id,
+                user_id: userId,
+                viewed_at: new Date(),
+              },
+            },
+            { upsert: true, new: true },
+          );
 
           socket.to(room).emit("message:seen", {
             message_id,
-            seen_at: seen.viewed_at,
+            seen_at: seen!.viewed_at,
             userId,
           });
 
-          callback({ data: seen });
+          callback({ data: seen! });
         } catch (error) {
           const { message } = error as { message: string };
           callback({ error: message || "Failed to send message" });
