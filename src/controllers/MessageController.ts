@@ -208,6 +208,14 @@ export const getChatMessages = async (req: Request, res: Response) => {
 
     const messages = await Message.find(messageQuery)
       .populate("sender_id", "username avatar_url")
+      .populate({
+        path: "reply_to_id",
+        select: "_id content is_deleted attachment sender_id",
+        populate: {
+          path: "sender_id",
+          select: "_id username avatar_url",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(parsedOffset)
       .limit(parsedLimit)
@@ -258,6 +266,20 @@ export const getChatMessages = async (req: Request, res: Response) => {
         is_deleted: msg.is_deleted,
         attachment: msg.attachment,
         seen: viewsMap.get(messageId) ?? [],
+        reply_to: msg.reply_to_id
+          ? {
+              _id: msg.reply_to_id._id.toString(),
+              content: msg.reply_to_id.content,
+              is_deleted: msg.reply_to_id.is_deleted,
+              attachment: msg.reply_to_id.attachment ?? null,
+              sender: {
+                _id: msg.reply_to_id.sender_id?._id?.toString() ?? null,
+                username: msg.reply_to_id.sender_id?.username ?? null,
+                display_name: msg.reply_to_id.sender_id?.display_name ?? null,
+                avatar_url: msg.reply_to_id.sender_id?.avatar_url ?? null,
+              },
+            }
+          : null,
         sender: {
           user: {
             _id: msg.sender_id?._id?.toString(),
