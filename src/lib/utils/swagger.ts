@@ -55,12 +55,16 @@ const options: swaggerJsdoc.Options = {
               properties: {
                 _id: { type: "string" },
                 username: { type: "string" },
+                display_name: { type: "string", nullable: true },
                 avatar_url: { type: "string", nullable: true },
+                last_seen: {
+                  type: "string",
+                  format: "date-time",
+                  nullable: true,
+                },
               },
             },
             groupRole: { $ref: "#/components/schemas/GroupRole" },
-            isContact: { type: "boolean" },
-            contactName: { type: "string", nullable: true },
           },
         },
         Chat: {
@@ -95,17 +99,6 @@ const options: swaggerJsdoc.Options = {
               type: "string",
               enum: ["text", "image", "video", "file"],
             },
-            createdAt: { type: "string", format: "date-time" },
-            updatedAt: { type: "string", format: "date-time" },
-          },
-        },
-        Contact: {
-          type: "object",
-          properties: {
-            _id: { type: "string" },
-            owner: { type: "string" },
-            contact: { $ref: "#/components/schemas/User" },
-            nickname: { type: "string" },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },

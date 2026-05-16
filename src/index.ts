@@ -11,7 +11,6 @@ import AuthRoutes from "./routes/auth.routes";
 import UserRoutes from "./routes/user.routes";
 import ChatRoutes from "./routes/chat.routes";
 import MessageRoutes from "./routes/message.routes";
-import ContactRoutes from "./routes/contact.routes";
 import CloudinaryRoutes from "./routes/cloudinary.routes";
 import cookieParser from "cookie-parser";
 
@@ -46,7 +45,6 @@ app.use("/api/auth", AuthRoutes);
 app.use("/api/user", UserRoutes);
 app.use("/api/chats", ChatRoutes);
 app.use("/api/messages", MessageRoutes);
-app.use("/api/contacts", ContactRoutes);
 app.use("/api/cloudinary", CloudinaryRoutes);
 
 const httpServer = createServer(app);

@@ -138,7 +138,7 @@ export const registerSocketHandlers = (io: IOType): void => {
             user_id: userId,
           });
 
-          socket.to(room).emit("message:new_seen", {
+          socket.to(room).emit("message:seen", {
             message_id,
             seen_at: seen.viewed_at,
             userId,
@@ -223,14 +223,12 @@ export const registerSocketHandlers = (io: IOType): void => {
               username: sender.username,
               display_name: sender.display_name ?? null,
               avatar_url: sender.avatar_url ?? null,
-              last_seen: sender.last_seen ?? null,
+              last_seen: sender.last_seen?.toISOString() ?? null,
             },
-            isContact: false,
-            contactName: null,
           },
         };
 
-        socket.to(data.room).emit("message:new", formattedMessage);
+        socket.to(data.room).emit("message:receive", formattedMessage);
         callback({ data: formattedMessage });
       } catch (error) {
         const { message } = error as { message: string };
@@ -271,10 +269,8 @@ export const registerSocketHandlers = (io: IOType): void => {
               username: updated.sender_id.username,
               display_name: updated.sender_id.display_name ?? null,
               avatar_url: updated.sender_id.avatar_url ?? null,
-              last_seen: updated.sender_id.last_seen ?? null,
+              last_seen: updated.sender_id.last_seen?.toISOString() ?? null,
             },
-            isContact: false,
-            contactName: null,
           },
         };
 

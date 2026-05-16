@@ -13,14 +13,6 @@ export interface Message {
   seen: MessageSeen[];
   reply_to?: ReplyMessage | null;
 }
-export interface SendMessageProps {
-  chat_id?: string;
-  content: string;
-  recipient_id?: string;
-  attachment?: MessageAttachment;
-  reply_to?: string;
-  is_group: boolean;
-}
 
 export interface MessageAttachment {
   file_url: string;

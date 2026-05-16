@@ -197,11 +197,6 @@ ChatRoutes.post("/group", validate(createGroupSchema), createGroup);
  *                       nullable: true
  *                     is_active:
  *                       type: boolean
- *                 isContact:
- *                   type: boolean
- *                 contactName:
- *                   type: string
- *                   nullable: true
  *       401:
  *         description: Unauthorized
  *         content:

@@ -7,7 +7,6 @@ import {
   IChatParticipants,
 } from "@/models/Chat";
 import {
-  buildContactMap,
   formatLastMessageSender,
   getChatKey,
   getLastMessages,
@@ -39,15 +38,13 @@ export const getMyChats = async (req: Request, res: Response) => {
       ]),
     );
 
-    const [allParticipants, contactMap, lastMessages, unreadCounts] =
-      await Promise.all([
-        ChatParticipants.find({ chat_id: { $in: chatIds } })
-          .populate("user_id")
-          .lean(),
-        buildContactMap(authUser._id),
-        getLastMessages(chatIds),
-        getUnreadCounts(chatIds, new Types.ObjectId(authUser._id)),
-      ]);
+    const [allParticipants, lastMessages, unreadCounts] = await Promise.all([
+      ChatParticipants.find({ chat_id: { $in: chatIds } })
+        .populate("user_id")
+        .lean(),
+      getLastMessages(chatIds),
+      getUnreadCounts(chatIds, new Types.ObjectId(authUser._id)),
+    ]);
 
     const lastMessageMap = new Map(
       lastMessages.map((m) => [m._id.toString(), m.lastMessage]),
@@ -78,7 +75,7 @@ export const getMyChats = async (req: Request, res: Response) => {
         lastMessage = null;
       }
 
-      lastMessage = formatLastMessageSender(lastMessage, contactMap);
+      lastMessage = formatLastMessageSender(lastMessage);
 
       const participantsForChat =
         participantsByChatId.get(chat._id.toString()) ?? [];
@@ -93,9 +90,7 @@ export const getMyChats = async (req: Request, res: Response) => {
             avatar_url: user.avatar_url ?? null,
             last_seen: user.last_seen ?? null,
           },
-          groupRole: p.groupRole,
-          isContact: contactMap.has(user._id.toString()),
-          contactName: contactMap.get(user._id.toString()) ?? null,
+          groupRole: p.groupRole ?? null,
         };
       });
 
@@ -183,10 +178,7 @@ export const createGroup = async (req: Request, res: Response) => {
       });
     }
 
-    const [, contactMap] = await Promise.all([
-      ChatParticipants.insertMany(participantsToInsert),
-      buildContactMap(authUser._id),
-    ]);
+    await ChatParticipants.insertMany(participantsToInsert);
 
     const participants = await ChatParticipants.find({ chat_id: group._id })
       .populate("user_id")
@@ -202,9 +194,7 @@ export const createGroup = async (req: Request, res: Response) => {
           avatar_url: user.avatar_url ?? null,
           last_seen: user.last_seen ?? null,
         },
-        groupRole: p.groupRole,
-        isContact: contactMap.has(user._id.toString()),
-        contactName: contactMap.get(user._id.toString()) ?? null,
+        groupRole: p.groupRole ?? null,
       };
     });
 
@@ -260,30 +250,24 @@ export const getChatById = async (req: Request, res: Response) => {
 
     const chat = chatParticipant.chat_id as IChat;
 
-    const [participants, contactMap] = await Promise.all([
-      ChatParticipants.find({ chat_id, left_at: null })
-        .populate({
-          path: "user_id",
-          select: "_id username display_name avatar_url last_seen",
-        })
-        .select("user_id groupRole")
-        .lean(),
-      buildContactMap(authUser._id),
-    ]);
+    const participants = await ChatParticipants.find({ chat_id, left_at: null })
+      .populate({
+        path: "user_id",
+        select: "_id username display_name avatar_url last_seen",
+      })
+      .select("user_id groupRole")
+      .lean();
 
     const formattedParticipants = participants.map((p) => {
-      const userId = p.user_id._id.toString();
       return {
         user: {
-          _id: userId,
+          _id: p.user_id._id.toString(),
           username: p.user_id.username,
           display_name: p.user_id.display_name ?? null,
           avatar_url: p.user_id.avatar_url ?? null,
           last_seen: p.user_id.last_seen ?? null,
         },
-        groupRole: p.groupRole,
-        isContact: contactMap.has(userId),
-        contactName: contactMap.get(userId) ?? null,
+        groupRole: p.groupRole ?? null,
       };
     });
 
@@ -334,27 +318,16 @@ export const getRecipientInfo = async (req: Request, res: Response) => {
         message: "Recipient Not Found",
       });
 
-    const contactMap = await buildContactMap(authUser._id);
-    const userId = user._id.toString();
-
-    const recipientInfo = {
+    return res.status(200).json({
       user: {
-        _id: userId,
+        _id: user._id.toString(),
         username: user.username,
         display_name: user.display_name ?? null,
         avatar_url: user.avatar_url ?? null,
         last_seen: user.last_seen ?? null,
         is_active: user.is_active,
       },
-      isContact: contactMap.has(userId),
-      contactName: contactMap.get(userId) ?? null,
-    };
-
-    if (!recipientInfo) {
-      return res.status(404).json({ message: "Recipient not found" });
-    }
-
-    return res.status(200).json(recipientInfo);
+    });
   } catch (error) {
     console.error("Recipient Info Fetch Error:", error);
     const { message } = error as { message: string };
@@ -413,7 +386,7 @@ export const createSingleChat = async (req: Request, res: Response) => {
       { upsert: true, new: true },
     );
 
-    const [, , contactMap] = await Promise.all([
+    await Promise.all([
       ChatParticipants.updateOne(
         { chat_id: chat!._id, user_id },
         {
@@ -432,7 +405,6 @@ export const createSingleChat = async (req: Request, res: Response) => {
         },
         { upsert: true },
       ),
-      buildContactMap(user_id),
     ]);
 
     const participants = await ChatParticipants.find({ chat_id: chat!._id })
@@ -449,9 +421,7 @@ export const createSingleChat = async (req: Request, res: Response) => {
           avatar_url: user.avatar_url ?? null,
           last_seen: user.last_seen ?? null,
         },
-        groupRole: p.groupRole,
-        isContact: contactMap.has(user._id.toString()),
-        contactName: contactMap.get(user._id.toString()) ?? null,
+        groupRole: p.groupRole ?? null,
       };
     });
 

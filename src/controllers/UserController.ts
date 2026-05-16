@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import User from "@/models/User";
-import { Contacts } from "@/models/Contact";
 
 // GET /api/user/unique/:username
 export const checkUsername = async (req: Request, res: Response) => {
@@ -36,24 +35,12 @@ export const searchUsers = async (req: Request, res: Response) => {
       .select("_id username avatar_url")
       .lean();
 
-    let contactMap: Map<string, string> = new Map();
-
-    if (authUser) {
-      const contacts = await Contacts.find({ owner_id: authUser._id }).lean();
-      contactMap = new Map(
-        contacts.map((c) => [c.user_id.toString(), c.name ?? ""]),
-      );
-    }
-
     const response = users.map((user) => ({
       user: {
         _id: user._id.toString(),
         username: user.username,
         avatar_url: user.avatar_url ?? null,
       },
-      role: undefined,
-      isContact: contactMap.has(user._id.toString()),
-      contactName: contactMap.get(user._id.toString()),
     }));
 
     return res.status(200).json(response);

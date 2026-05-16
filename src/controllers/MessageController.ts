@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { Chat, ChatParticipants } from "@/models/Chat";
 import { IMessage, Message, MessageView } from "@/models/Message";
 import mongoose, { isValidObjectId } from "mongoose";
-import { buildContactMap } from "@/lib/utils/chat";
 
 // POST /api/messages
 export const sendMessage = async (req: Request, res: Response) => {
@@ -56,8 +55,6 @@ export const sendMessage = async (req: Request, res: Response) => {
           username: message.sender_id?.username,
           avatar_url: message.sender_id?.avatar_url,
         },
-        isContact: false,
-        contactName: null,
       },
     };
 
@@ -121,8 +118,6 @@ export const updateMessage = async (req: Request, res: Response) => {
           avatar_url: updatedMessage!.sender_id?.avatar_url ?? null,
           last_seen: updatedMessage!.sender_id?.last_seen ?? null,
         },
-        isContact: false,
-        contactName: null,
       },
     };
     return res.status(200).json({
@@ -250,10 +245,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
       });
     }
 
-    const contactMap = await buildContactMap(authUser._id);
-
     const formattedMessages = messages.reverse().map((msg) => {
-      const senderId = msg.sender_id?._id?.toString();
       const messageId = msg._id.toString();
 
       return {
@@ -265,18 +257,13 @@ export const getChatMessages = async (req: Request, res: Response) => {
         is_edited: msg.is_edited,
         is_deleted: msg.is_deleted,
         attachment: msg.attachment,
-
-        // Seen information
         seen: viewsMap.get(messageId) ?? [],
-
         sender: {
           user: {
-            _id: senderId,
+            _id: msg.sender_id?._id?.toString(),
             username: msg.sender_id?.username,
             avatar_url: msg.sender_id?.avatar_url,
           },
-          isContact: senderId ? contactMap.has(senderId) : false,
-          contactName: senderId ? contactMap.get(senderId) : undefined,
         },
       };
     });

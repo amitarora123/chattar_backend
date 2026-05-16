@@ -7,10 +7,10 @@ export interface ServerToClientEvents {
   "user:offline": (userId: string) => void;
   "typing:start": (data: { userId: string; chat_id: string }) => void;
   "typing:stop": (data: { userId: string; chat_id: string }) => void;
-  "message:new": (message: Message) => void;
+  "message:receive": (message: Message) => void;
   "message:update": (message: Message) => void;
   "message:delete": (data: { message_id: string; chat_id: string }) => void;
-  "message:new_seen": (data: {
+  "message:seen": (data: {
     message_id: string;
     userId: string;
     seen_at: string;

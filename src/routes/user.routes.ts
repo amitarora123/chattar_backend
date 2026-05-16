@@ -86,10 +86,6 @@ UserRoutes.get("/unique/:username", checkUsername);
  *                       avatar_url:
  *                         type: string
  *                         nullable: true
- *                   isContact:
- *                     type: boolean
- *                   contactName:
- *                     type: string
  */
 UserRoutes.get(
   "/search",

@@ -11,11 +11,14 @@ export interface ChatParticipant {
   user: {
     _id: string;
     username: string;
+    display_name?: string | null;
     avatar_url?: string | null;
+    last_seen?: string | null;
   };
-  role?: string;
-  isContact: boolean;
-  contactName: string | null;
+  groupRole?: {
+    name: string;
+    assigned_by: string;
+  } | null;
 }
 
 export interface Chat {

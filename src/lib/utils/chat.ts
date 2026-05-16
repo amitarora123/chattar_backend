@@ -1,17 +1,9 @@
-import { Contacts } from "@/models/Contact";
 import { Message } from "@/models/Message";
 import mongoose, { Types } from "mongoose";
 
 export function getChatKey(user_id1: string, user_id2: string): string {
   const sortedIds = [user_id1, user_id2].sort();
   return `${sortedIds[0]}_${sortedIds[1]}`;
-}
-
-export async function buildContactMap(
-  ownerId: unknown,
-): Promise<Map<string, string>> {
-  const contacts = await Contacts.find({ owner_id: ownerId }).lean();
-  return new Map(contacts.map((c) => [c.user_id.toString(), c.name ?? ""]));
 }
 
 export async function getLastMessages(chatIds: unknown[]) {
@@ -118,7 +110,6 @@ export async function getUnreadCounts(
 
 export function formatLastMessageSender(
   lastMessage: Record<string, unknown> | null,
-  contactMap: Map<string, string>,
 ) {
   if (!lastMessage?.sender) return lastMessage;
 
@@ -133,9 +124,6 @@ export function formatLastMessageSender(
         username: sender.username,
         avatar_url: sender.avatar_url ?? null,
       },
-      groupRole: null,
-      isContact: contactMap.has(senderId),
-      contactName: contactMap.get(senderId) ?? null,
     },
   };
 }
