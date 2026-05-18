@@ -300,6 +300,64 @@ export const getChatMessages = async (req: Request, res: Response) => {
   }
 };
 
+// GET /api/messages/chat/:chat_id/attachments
+export const getChatAttachments = async (req: Request, res: Response) => {
+  try {
+    const chat_id = req.params.chat_id;
+    const authUser = req.authUser!;
+
+    const chat = await Chat.findById(chat_id);
+    if (!chat) return res.status(404).json({ message: "Chat Not Found" });
+
+    const chatObjectId = new mongoose.Types.ObjectId(chat._id.toString());
+
+    const isMember = await ChatParticipants.exists({
+      chat_id: chatObjectId,
+      user_id: authUser._id,
+    });
+
+    if (!isMember)
+      return res
+        .status(403)
+        .json({ message: "User is not the chat participant" });
+
+    const messages = await Message.find({
+      chat_id: chatObjectId,
+      attachment: { $exists: true, $ne: null },
+      is_deleted: false,
+    })
+      .sort({ createdAt: -1 })
+      .populate("sender_id", "username avatar_url")
+      .lean();
+
+    const formattedMessages = messages.map((msg) => ({
+      _id: msg._id.toString(),
+      content: msg.content,
+      chat_id: msg.chat_id.toString(),
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+      is_edited: msg.is_edited,
+      is_deleted: msg.is_deleted,
+      attachment: msg.attachment,
+      seen: [],
+      reply_to: null,
+      sender: {
+        _id: msg.sender_id?._id?.toString(),
+        username: msg.sender_id?.username,
+        avatar_url: msg.sender_id?.avatar_url,
+      },
+    }));
+
+    return res.status(200).json({ data: formattedMessages });
+  } catch (error) {
+    console.log("Error fetching chat attachments:", error);
+    const { message } = error as { message: string };
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
+  }
+};
+
 export const viewMessage = async (req: Request, res: Response) => {
   try {
     const message_id = req.params.message_id;

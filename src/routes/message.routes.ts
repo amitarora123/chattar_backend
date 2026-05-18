@@ -5,6 +5,7 @@ import {
   updateMessage,
   deleteMessage,
   getChatMessages,
+  getChatAttachments,
 } from "@/controllers/MessageController";
 import { validate } from "@/middleware/validate.middleware";
 import {
@@ -134,6 +135,8 @@ MessageRoutes.get(
   validate(getChatMessagesSchema),
   getChatMessages,
 );
+
+MessageRoutes.get("/chat/:chat_id/attachments", getChatAttachments);
 
 /**
  * @openapi
