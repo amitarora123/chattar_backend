@@ -6,12 +6,7 @@ import {
   IChat,
   IChatParticipants,
 } from "@/models/Chat";
-import {
-  formatLastMessageSender,
-  getChatKey,
-  getLastMessages,
-  getUnreadCounts,
-} from "@/lib/utils/chat";
+import { getChatKey, getLastMessages, getUnreadCounts } from "@/lib/utils/chat";
 import User, { IUser } from "@/models/User";
 
 // GET /api/chats/me

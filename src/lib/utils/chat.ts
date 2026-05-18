@@ -8,7 +8,7 @@ export function getChatKey(user_id1: string, user_id2: string): string {
 
 export async function getLastMessages(chatIds: unknown[]) {
   return Message.aggregate([
-    { $match: { chat_id: { $in: chatIds }, is_deleted: false } },
+    { $match: { chat_id: { $in: chatIds } } },
     { $sort: { chat_id: 1, createdAt: -1 } },
     {
       $group: {
@@ -42,6 +42,7 @@ export async function getLastMessages(chatIds: unknown[]) {
           content: "$lastMessage.content",
           chat_id: "$lastMessage.chat_id",
           createdAt: "$lastMessage.createdAt",
+          updatedAt: "$lastMessage.updatedAt",
           attachment: "$lastMessage.attachment",
           seen: {
             $map: {
