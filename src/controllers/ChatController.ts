@@ -75,7 +75,7 @@ export const getMyChats = async (req: Request, res: Response) => {
         lastMessage = null;
       }
 
-      lastMessage = formatLastMessageSender(lastMessage);
+      // lastMessage = formatLastMessageSender(lastMessage);
 
       const participantsForChat =
         participantsByChatId.get(chat._id.toString()) ?? [];
