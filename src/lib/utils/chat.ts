@@ -44,6 +44,7 @@ export async function getLastMessages(chatIds: unknown[]) {
           createdAt: "$lastMessage.createdAt",
           updatedAt: "$lastMessage.updatedAt",
           attachment: "$lastMessage.attachment",
+          is_deleted: "$lastMessage.is_deleted",
           seen: {
             $map: {
               input: "$seen",

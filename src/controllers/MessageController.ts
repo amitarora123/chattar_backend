@@ -193,7 +193,6 @@ export const getChatMessages = async (req: Request, res: Response) => {
 
     const messageQuery: Record<string, unknown> = {
       chat_id: chatObjectId,
-      is_deleted: false,
     };
 
     if (chatParticipant.cleared_at) {
