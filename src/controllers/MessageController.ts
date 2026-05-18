@@ -50,11 +50,9 @@ export const sendMessage = async (req: Request, res: Response) => {
       attachment: message.attachment,
       seen: [],
       sender: {
-        user: {
-          _id: message.sender_id?._id?.toString(),
-          username: message.sender_id?.username,
-          avatar_url: message.sender_id?.avatar_url,
-        },
+        _id: message.sender_id?._id?.toString(),
+        username: message.sender_id?.username,
+        avatar_url: message.sender_id?.avatar_url,
       },
     };
 
@@ -111,13 +109,11 @@ export const updateMessage = async (req: Request, res: Response) => {
       attachment: updatedMessage!.attachment,
       seen: [],
       sender: {
-        user: {
-          _id: updatedMessage!.sender_id?._id?.toString(),
-          username: updatedMessage!.sender_id?.username,
-          display_name: updatedMessage!.sender_id?.display_name ?? null,
-          avatar_url: updatedMessage!.sender_id?.avatar_url ?? null,
-          last_seen: updatedMessage!.sender_id?.last_seen ?? null,
-        },
+        _id: updatedMessage!.sender_id?._id?.toString(),
+        username: updatedMessage!.sender_id?.username,
+        display_name: updatedMessage!.sender_id?.display_name ?? null,
+        avatar_url: updatedMessage!.sender_id?.avatar_url ?? null,
+        last_seen: updatedMessage!.sender_id?.last_seen ?? null,
       },
     };
     return res.status(200).json({
@@ -275,17 +271,14 @@ export const getChatMessages = async (req: Request, res: Response) => {
               sender: {
                 _id: msg.reply_to_id.sender_id?._id?.toString() ?? null,
                 username: msg.reply_to_id.sender_id?.username ?? null,
-                display_name: msg.reply_to_id.sender_id?.display_name ?? null,
                 avatar_url: msg.reply_to_id.sender_id?.avatar_url ?? null,
               },
             }
           : null,
         sender: {
-          user: {
-            _id: msg.sender_id?._id?.toString(),
-            username: msg.sender_id?.username,
-            avatar_url: msg.sender_id?.avatar_url,
-          },
+          _id: msg.sender_id?._id?.toString(),
+          username: msg.sender_id?.username,
+          avatar_url: msg.sender_id?.avatar_url,
         },
       };
     });
