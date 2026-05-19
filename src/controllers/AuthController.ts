@@ -18,7 +18,6 @@ import BlockedToken from "@/models/BlockedToken";
 const client = new OAuth2Client(
   process.env.AUTH_GOOGLE_ID,
   process.env.AUTH_GOOGLE_SECRET,
-  process.env.AUTH_GOOGLE_REDIRECT_URI,
 );
 
 // POST /api/auth/sign-up
@@ -125,8 +124,12 @@ export const login = async (req: Request, res: Response) => {
 export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { code } = req.body;
+    const origin = req.headers.origin;
 
-    const { tokens } = await client.getToken(code);
+    const { tokens } = await client.getToken({
+      code,
+      redirect_uri: `${origin}/auth/google/callback`,
+    });
 
     const ticket = await client.verifyIdToken({
       idToken: tokens.id_token!,
