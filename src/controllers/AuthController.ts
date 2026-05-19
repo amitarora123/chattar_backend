@@ -99,9 +99,15 @@ export const login = async (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(userDetails);
     const accessToken = generateAccessToken(userDetails);
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(200).json({
       ...userDetails,
-      refreshToken,
       accessToken,
       avatar_url: user.avatar_url,
     });
@@ -158,8 +164,14 @@ export const googleLogin = async (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(userDetails);
     const accessToken = generateAccessToken(userDetails);
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(200).json({
-      refreshToken,
       accessToken,
       ...userDetails,
       avatar_url: user.avatar_url,
@@ -339,7 +351,11 @@ export const resendOtp = async (req: Request, res: Response) => {
 // POST /api/auth/refresh
 export const refreshAccessToken = async (req: Request, res: Response) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" });
+    }
 
     const decodedToken = jwt.verify(
       refreshToken,
@@ -347,11 +363,11 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     ) as AuthUser;
 
     if (!decodedToken) {
-      return res.status(400).json({ message: "Invalid Refresh Token" });
+      return res.status(401).json({ message: "Invalid Refresh Token" });
     }
 
     const user = await User.findById(decodedToken._id)
-      .select("_id username email avatar_url")
+      .select("_id username email avatar_url display_name")
       .lean();
 
     if (!user) {
@@ -365,12 +381,19 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       display_name: user.display_name || "",
       email: user.email,
     };
+
     const accessToken = generateAccessToken(userDetails);
     const newRefreshToken = generateRefreshToken(userDetails);
 
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(200).json({
       accessToken,
-      refreshToken: newRefreshToken,
       _id: user._id.toString(),
       username: user.username,
       email: user.email,
@@ -379,7 +402,9 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Error while Refreshing Token: ", error);
     const { message } = error as { message: string };
-    return res.status(500).json({ message: message || "Something Went wrong" });
+    return res
+      .status(401)
+      .json({ message: message || "Invalid or expired refresh token" });
   }
 };
 
@@ -397,6 +422,12 @@ export const logout = async (req: Request, res: Response) => {
         });
       }
     }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
 
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
