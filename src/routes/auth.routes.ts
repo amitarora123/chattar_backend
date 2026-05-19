@@ -19,7 +19,6 @@ import {
   resetPasswordSchema,
   verifyUserSchema,
   resendOtpSchema,
-  refreshAccessTokenSchema,
 } from "@/validators/auth.validators";
 
 const AuthRoutes = Router();
@@ -422,11 +421,7 @@ AuthRoutes.post("/resend-otp", validate(resendOtpSchema), resendOtp);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-AuthRoutes.post(
-  "/refresh",
-  validate(refreshAccessTokenSchema),
-  refreshAccessToken,
-);
+AuthRoutes.post("/refresh", refreshAccessToken);
 
 /**
  * @openapi

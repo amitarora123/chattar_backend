@@ -46,9 +46,3 @@ export const resendOtpSchema = z.object({
     email: z.email("Invalid email address"),
   }),
 });
-
-export const refreshAccessTokenSchema = z.object({
-  body: z.object({
-    refreshToken: z.string().min(1, "Refresh token is required"),
-  }),
-});
