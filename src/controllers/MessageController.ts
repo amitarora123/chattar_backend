@@ -300,6 +300,108 @@ export const getChatMessages = async (req: Request, res: Response) => {
   }
 };
 
+// GET /api/messages/chat/:chat_id/search?q=text
+export const searchMessages = async (req: Request, res: Response) => {
+  try {
+    const chat_id = req.params.chat_id;
+    const authUser = req.authUser!;
+    const { q } = req.query;
+
+    const chat = await Chat.findById(chat_id);
+    if (!chat) return res.status(404).json({ message: "Chat Not Found" });
+
+    const chatObjectId = new mongoose.Types.ObjectId(chat._id.toString());
+
+    const chatParticipant = await ChatParticipants.findOne({
+      chat_id: chatObjectId,
+      user_id: authUser._id,
+    }).lean();
+
+    if (!chatParticipant)
+      return res
+        .status(403)
+        .json({ message: "User is not the chat participant" });
+
+    const messageQuery: Record<string, unknown> = {
+      chat_id: chatObjectId,
+      is_deleted: false,
+      content: { $regex: q as string, $options: "i" },
+    };
+
+    if (chatParticipant.cleared_at) {
+      messageQuery.createdAt = { $gt: chatParticipant.cleared_at };
+    }
+
+    const messages = await Message.find(messageQuery)
+      .populate("sender_id", "username avatar_url")
+      .populate({
+        path: "reply_to_id",
+        select: "_id content is_deleted attachment sender_id",
+        populate: { path: "sender_id", select: "_id username avatar_url" },
+      })
+      .sort({ createdAt: 1 })
+      .limit(50)
+      .lean();
+
+    const messageIds = messages.map((msg) => msg._id);
+    const messageViews = await MessageView.find({
+      message_id: { $in: messageIds },
+    })
+      .select("message_id user_id viewed_at")
+      .lean();
+
+    const viewsMap = new Map<string, { user_id: string; viewed_at: Date }[]>();
+    for (const view of messageViews) {
+      const mid = view.message_id.toString();
+      if (!viewsMap.has(mid)) viewsMap.set(mid, []);
+      viewsMap
+        .get(mid)!
+        .push({ user_id: view.user_id.toString(), viewed_at: view.viewed_at });
+    }
+
+    const formattedMessages = messages.map((msg) => {
+      const messageId = msg._id.toString();
+      return {
+        _id: messageId,
+        content: msg.content,
+        chat_id: msg.chat_id.toString(),
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt,
+        is_edited: msg.is_edited,
+        is_deleted: msg.is_deleted,
+        attachment: msg.attachment,
+        seen: viewsMap.get(messageId) ?? [],
+        reply_to: msg.reply_to_id
+          ? {
+              _id: msg.reply_to_id._id.toString(),
+              content: msg.reply_to_id.content,
+              is_deleted: msg.reply_to_id.is_deleted,
+              attachment: msg.reply_to_id.attachment ?? null,
+              sender: {
+                _id: msg.reply_to_id.sender_id?._id?.toString() ?? null,
+                username: msg.reply_to_id.sender_id?.username ?? null,
+                avatar_url: msg.reply_to_id.sender_id?.avatar_url ?? null,
+              },
+            }
+          : null,
+        sender: {
+          _id: msg.sender_id?._id?.toString(),
+          username: msg.sender_id?.username,
+          avatar_url: msg.sender_id?.avatar_url,
+        },
+      };
+    });
+
+    return res.status(200).json({ data: formattedMessages });
+  } catch (error) {
+    console.log("Error searching messages:", error);
+    const { message } = error as { message: string };
+    return res
+      .status(500)
+      .json({ message: message || "Internal Server Error" });
+  }
+};
+
 // GET /api/messages/chat/:chat_id/attachments
 export const getChatAttachments = async (req: Request, res: Response) => {
   try {

@@ -13,6 +13,15 @@ export const getChatMessagesSchema = z.object({
   }),
 });
 
+export const searchMessagesSchema = z.object({
+  params: z.object({
+    chat_id: z.string().min(1, "chat_id is required"),
+  }),
+  query: z.object({
+    q: z.string().min(1, "Search query is required"),
+  }),
+});
+
 export const sendMessageSchema = z.object({
   params: z.object({
     chat_id: z.string().min(1, "chat_id is required"),

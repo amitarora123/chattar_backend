@@ -6,10 +6,12 @@ import {
   deleteMessage,
   getChatMessages,
   getChatAttachments,
+  searchMessages,
 } from "@/controllers/MessageController";
 import { validate } from "@/middleware/validate.middleware";
 import {
   getChatMessagesSchema,
+  searchMessagesSchema,
   sendMessageSchema,
   updateMessageSchema,
 } from "@/validators/message.validators";
@@ -134,6 +136,12 @@ MessageRoutes.get(
   "/chat/:chat_id",
   validate(getChatMessagesSchema),
   getChatMessages,
+);
+
+MessageRoutes.get(
+  "/chat/:chat_id/search",
+  validate(searchMessagesSchema),
+  searchMessages,
 );
 
 MessageRoutes.get("/chat/:chat_id/attachments", getChatAttachments);
