@@ -17,7 +17,7 @@ export const loginSchema = z.object({
 
 export const googleLoginSchema = z.object({
   body: z.object({
-    id_token: z.string().min(1, "Google ID token is required"),
+    code: z.string().min(1, "Authorization code is required"),
   }),
 });
 

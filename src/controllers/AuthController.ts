@@ -15,7 +15,11 @@ import jwt from "jsonwebtoken";
 import { User as AuthUser } from "@/types/user.types";
 import BlockedToken from "@/models/BlockedToken";
 
-const client = new OAuth2Client(process.env.AUTH_GOOGLE_ID);
+const client = new OAuth2Client(
+  process.env.AUTH_GOOGLE_ID,
+  process.env.AUTH_GOOGLE_SECRET,
+  process.env.AUTH_GOOGLE_REDIRECT_URI,
+);
 
 // POST /api/auth/sign-up
 export const signup = async (req: Request, res: Response) => {
@@ -120,10 +124,12 @@ export const login = async (req: Request, res: Response) => {
 // POST /api/auth/google-login
 export const googleLogin = async (req: Request, res: Response) => {
   try {
-    const { id_token } = req.body;
+    const { code } = req.body;
+
+    const { tokens } = await client.getToken(code);
 
     const ticket = await client.verifyIdToken({
-      idToken: id_token,
+      idToken: tokens.id_token!,
       audience: process.env.AUTH_GOOGLE_ID,
     });
 
