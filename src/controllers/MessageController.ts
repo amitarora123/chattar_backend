@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
 import { Chat, ChatParticipants } from "@/models/Chat";
-import { IMessage, Message, MessageView } from "@/models/Message";
+import {
+  IMessage,
+  Message,
+  MessageReaction,
+  MessageView,
+} from "@/models/Message";
 import mongoose, { isValidObjectId } from "mongoose";
 
 // POST /api/messages
@@ -216,40 +221,45 @@ export const getChatMessages = async (req: Request, res: Response) => {
       .limit(parsedLimit)
       .lean();
 
-    // Get all message IDs
     const messageIds = messages.map((msg) => msg._id);
 
-    // Fetch all seen records for these messages
-    const messageViews = await MessageView.find({
-      message_id: { $in: messageIds },
-    })
-      .select("message_id user_id viewed_at")
-      .lean();
+    const [messageViews, messageReactions] = await Promise.all([
+      MessageView.find({ message_id: { $in: messageIds } })
+        .select("message_id user_id viewed_at")
+        .lean(),
+      MessageReaction.find({ message_id: { $in: messageIds } })
+        .select("message_id participant_id reaction")
+        .lean(),
+    ]);
 
-    // Group views by message_id
-    const viewsMap = new Map<
-      string,
-      {
-        user_id: string;
-        viewed_at: Date;
-      }[]
-    >();
-
+    const viewsMap = new Map<string, { user_id: string; viewed_at: Date }[]>();
     for (const view of messageViews) {
-      const messageId = view.message_id.toString();
+      const mid = view.message_id.toString();
+      if (!viewsMap.has(mid)) viewsMap.set(mid, []);
+      viewsMap
+        .get(mid)!
+        .push({ user_id: view.user_id.toString(), viewed_at: view.viewed_at });
+    }
 
-      if (!viewsMap.has(messageId)) {
-        viewsMap.set(messageId, []);
-      }
-
-      viewsMap.get(messageId)!.push({
-        user_id: view.user_id.toString(),
-        viewed_at: view.viewed_at,
-      });
+    const reactionsMap = new Map<string, Map<string, string[]>>();
+    for (const r of messageReactions) {
+      const mid = r.message_id.toString();
+      if (!reactionsMap.has(mid)) reactionsMap.set(mid, new Map());
+      const emojiMap = reactionsMap.get(mid)!;
+      if (!emojiMap.has(r.reaction)) emojiMap.set(r.reaction, []);
+      emojiMap.get(r.reaction)!.push(r.participant_id.toString());
     }
 
     const formattedMessages = messages.reverse().map((msg) => {
       const messageId = msg._id.toString();
+      const emojiMap = reactionsMap.get(messageId);
+      const reactions = emojiMap
+        ? Array.from(emojiMap.entries()).map(([emoji, userIds]) => ({
+            emoji,
+            count: userIds.length,
+            userIds,
+          }))
+        : [];
 
       return {
         _id: messageId,
@@ -261,6 +271,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
         is_deleted: msg.is_deleted,
         attachment: msg.attachment,
         seen: viewsMap.get(messageId) ?? [],
+        reactions,
         reply_to: msg.reply_to_id
           ? {
               _id: msg.reply_to_id._id.toString(),

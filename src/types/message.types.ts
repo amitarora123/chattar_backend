@@ -28,6 +28,12 @@ export interface MessageSeen {
   viewed_at: string;
 }
 
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
 export interface ReplyMessage {
   _id: string;
   content: string;

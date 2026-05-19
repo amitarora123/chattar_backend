@@ -1,4 +1,4 @@
-import { Message, MessageSeen } from "./message.types";
+import { Message, MessageReaction, MessageSeen } from "./message.types";
 import { Server as IOServer } from "socket.io";
 
 export interface ServerToClientEvents {
@@ -14,6 +14,10 @@ export interface ServerToClientEvents {
     message_id: string;
     userId: string;
     seen_at: string;
+  }) => void;
+  "message:reaction": (data: {
+    message_id: string;
+    reactions: MessageReaction[];
   }) => void;
 }
 
@@ -48,6 +52,11 @@ export interface ClientToServerEvents {
   "message:delete": (
     data: { room: string; message_id: string },
     callback: (response: { error?: string }) => void,
+  ) => void;
+
+  "message:react": (
+    data: { room: string; message_id: string; reaction: string },
+    callback: (response: { error?: string; data?: MessageReaction[] }) => void,
   ) => void;
 }
 

@@ -8,8 +8,11 @@ import {
   SocketData,
 } from "@/types/socket.types";
 import { ChatParticipants } from "@/models/Chat";
-import { Message, MessageView } from "@/models/Message";
-import { Sender } from "@/types/message.types";
+import { Message, MessageReaction, MessageView } from "@/models/Message";
+import {
+  MessageReaction as MessageReactionShape,
+  Sender,
+} from "@/types/message.types";
 
 type IOType = IOServer<
   ClientToServerEvents,
@@ -285,6 +288,60 @@ export const registerSocketHandlers = (io: IOType): void => {
       } catch (error) {
         const { message } = error as { message: string };
         ack({ error: message || "Failed to delete message" });
+      }
+    });
+
+    socket.on("message:react", async ({ room, message_id, reaction }, ack) => {
+      try {
+        const message = await Message.findById(message_id).lean();
+        if (!message) return ack({ error: "Message not found" });
+
+        const isMember = await ChatParticipants.exists({
+          chat_id: message.chat_id,
+          user_id: userId,
+          left_at: null,
+        });
+        if (!isMember) return ack({ error: "Not a participant" });
+
+        const existing = await MessageReaction.findOne({
+          message_id,
+          participant_id: userId,
+          reaction,
+        });
+
+        if (existing) {
+          await MessageReaction.deleteOne({ _id: existing._id });
+        } else {
+          await MessageReaction.findOneAndUpdate(
+            { message_id, participant_id: userId },
+            { reaction },
+            { upsert: true },
+          );
+        }
+
+        const allReactions = await MessageReaction.find({ message_id }).lean();
+
+        const reactionMap = new Map<string, string[]>();
+        for (const r of allReactions) {
+          const emoji = r.reaction;
+          if (!reactionMap.has(emoji)) reactionMap.set(emoji, []);
+          reactionMap.get(emoji)!.push(r.participant_id.toString());
+        }
+        const grouped: MessageReactionShape[] = Array.from(
+          reactionMap.entries(),
+        ).map(([emoji, userIds]) => ({
+          emoji,
+          count: userIds.length,
+          userIds,
+        }));
+
+        socket
+          .to(room)
+          .emit("message:reaction", { message_id, reactions: grouped });
+        ack({ data: grouped });
+      } catch (error) {
+        const { message } = error as { message: string };
+        ack({ error: message || "Failed to react" });
       }
     });
 
