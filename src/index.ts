@@ -12,6 +12,8 @@ import UserRoutes from "./routes/user.routes";
 import ChatRoutes from "./routes/chat.routes";
 import MessageRoutes from "./routes/message.routes";
 import CloudinaryRoutes from "./routes/cloudinary.routes";
+import PushRoutes from "./routes/push.routes";
+import LinkPreviewRoutes from "./routes/linkPreview.routes";
 import cookieParser from "cookie-parser";
 
 dotenv.config();
@@ -46,6 +48,8 @@ app.use("/api/user", UserRoutes);
 app.use("/api/chats", ChatRoutes);
 app.use("/api/messages", MessageRoutes);
 app.use("/api/cloudinary", CloudinaryRoutes);
+app.use("/api/push", PushRoutes);
+app.use("/api/link-preview", LinkPreviewRoutes);
 
 const httpServer = createServer(app);
 

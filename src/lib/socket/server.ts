@@ -13,6 +13,7 @@ import {
   MessageReaction as MessageReactionShape,
   Sender,
 } from "@/types/message.types";
+import { sendPushToUser } from "@/controllers/PushController";
 
 type IOType = IOServer<
   ClientToServerEvents,
@@ -210,6 +211,30 @@ export const registerSocketHandlers = (io: IOType): void => {
 
         socket.to(data.room).emit("message:receive", formattedMessage);
         callback({ data: formattedMessage });
+
+        // Fire push notifications to offline participants (non-blocking)
+        ChatParticipants.find(
+          { chat_id: data.chat_id, left_at: null, user_id: { $ne: userId } },
+          { user_id: 1 },
+        )
+          .lean()
+          .then((participants) => {
+            const senderName = sender.username ?? "Someone";
+            const preview = message.content
+              ? message.content.slice(0, 100)
+              : "📎 Attachment";
+            return Promise.all(
+              participants.map((p) =>
+                sendPushToUser(p.user_id.toString(), {
+                  title: senderName,
+                  body: preview,
+                  icon: sender.avatar_url ?? undefined,
+                  data: { chat_id: data.chat_id },
+                }),
+              ),
+            );
+          })
+          .catch(() => {});
       } catch (error) {
         const { message } = error as { message: string };
         callback({ error: message || "Failed to send message" });
