@@ -7,7 +7,7 @@ import {
   InterServerEvents,
   SocketData,
 } from "@/types/socket.types";
-import { ChatParticipants } from "@/models/Chat";
+import { Chat, ChatParticipants } from "@/models/Chat";
 import { Message, MessageReaction, MessageView } from "@/models/Message";
 import {
   MessageReaction as MessageReactionShape,
@@ -213,21 +213,27 @@ export const registerSocketHandlers = (io: IOType): void => {
         callback({ data: formattedMessage });
 
         // Fire push notifications to offline participants (non-blocking)
-        ChatParticipants.find(
-          { chat_id: data.chat_id, left_at: null, user_id: { $ne: userId } },
-          { user_id: 1 },
-        )
-          .lean()
-          .then((participants) => {
+        Promise.all([
+          ChatParticipants.find(
+            { chat_id: data.chat_id, left_at: null, user_id: { $ne: userId } },
+            { user_id: 1 },
+          ).lean(),
+          Chat.findById(data.chat_id, { is_group: 1, groupMetaData: 1 }).lean(),
+        ])
+          .then(([participants, chat]) => {
             const senderName = sender.username ?? "Someone";
             const preview = message.content
               ? message.content.slice(0, 100)
               : "📎 Attachment";
+            const title = chat?.is_group
+              ? (chat.groupMetaData?.name ?? "Group")
+              : senderName;
+            const body = chat?.is_group ? `${senderName}: ${preview}` : preview;
             return Promise.all(
               participants.map((p) =>
                 sendPushToUser(p.user_id.toString(), {
-                  title: senderName,
-                  body: preview,
+                  title,
+                  body,
                   icon: sender.avatar_url ?? undefined,
                   data: { chat_id: data.chat_id },
                 }),
