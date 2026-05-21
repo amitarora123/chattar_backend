@@ -85,7 +85,7 @@ export const getFeed = async (req: Request, res: Response) => {
       expires_at: { $gt: now },
       $and: [privacyFilter],
     })
-      .sort({ user_id: 1, createdAt: -1 })
+      .sort({ user_id: 1, createdAt: 1 })
       .populate("user_id", "_id username avatar_url display_name")
       .lean();
 
@@ -187,7 +187,7 @@ export const getMyStatuses = async (req: Request, res: Response) => {
       user_id: userId,
       expires_at: { $gt: now },
       is_archived: false,
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: 1 });
 
     return res.status(200).json({ data: statuses.map(formatStatus) });
   } catch (error) {
