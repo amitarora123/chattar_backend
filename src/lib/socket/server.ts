@@ -456,24 +456,97 @@ export const registerSocketHandlers = (io: IOType): void => {
       io.to(`user:${call.caller_id.toString()}`).emit("call:declined", {
         call_id,
       });
+
+      const callerUser = await User.findById(call.caller_id)
+        .select("_id username avatar_url")
+        .lean();
+      const callMsg = await Message.create({
+        chat_id: call.chat_id,
+        sender_id: call.caller_id,
+        content: "",
+        call_info: { call_id: call._id, type: call.type, status: "declined" },
+      });
+      io.to(`chat:${call.chat_id.toString()}`).emit("message:receive", {
+        _id: callMsg._id.toString(),
+        content: "",
+        chat_id: callMsg.chat_id.toString(),
+        createdAt: callMsg.createdAt,
+        updatedAt: callMsg.updatedAt,
+        is_edited: false,
+        is_deleted: false,
+        seen: [],
+        reply_to: null,
+        sender: {
+          _id: callerUser?._id.toString() ?? call.caller_id.toString(),
+          username: callerUser?.username ?? "",
+          avatar_url: callerUser?.avatar_url ?? null,
+        },
+        call_info: {
+          call_id: call._id.toString(),
+          type: call.type,
+          status: "declined",
+        },
+      });
     });
 
     socket.on("call:end", async ({ call_id }) => {
       const call = await Call.findById(call_id);
       if (!call) return;
-      const duration = Math.floor(
-        (Date.now() - call.started_at.getTime()) / 1000,
-      );
+
+      const wasRinging = call.status === "ringing";
+      const duration = wasRinging
+        ? undefined
+        : Math.floor((Date.now() - call.started_at.getTime()) / 1000);
+      const newStatus = wasRinging ? "missed" : "ended";
+
       await Call.findByIdAndUpdate(call_id, {
-        status: "ended",
+        status: newStatus,
         ended_at: new Date(),
-        duration,
+        ...(duration !== undefined && { duration }),
       });
+
       const otherUserId =
         call.caller_id.toString() === userId
           ? call.callee_id.toString()
           : call.caller_id.toString();
       io.to(`user:${otherUserId}`).emit("call:ended", { call_id });
+
+      const callerUser = await User.findById(call.caller_id)
+        .select("_id username avatar_url")
+        .lean();
+      const callMsg = await Message.create({
+        chat_id: call.chat_id,
+        sender_id: call.caller_id,
+        content: "",
+        call_info: {
+          call_id: call._id,
+          type: call.type,
+          status: newStatus,
+          ...(duration !== undefined && { duration }),
+        },
+      });
+      io.to(`chat:${call.chat_id.toString()}`).emit("message:receive", {
+        _id: callMsg._id.toString(),
+        content: "",
+        chat_id: callMsg.chat_id.toString(),
+        createdAt: callMsg.createdAt,
+        updatedAt: callMsg.updatedAt,
+        is_edited: false,
+        is_deleted: false,
+        seen: [],
+        reply_to: null,
+        sender: {
+          _id: callerUser?._id.toString() ?? call.caller_id.toString(),
+          username: callerUser?.username ?? "",
+          avatar_url: callerUser?.avatar_url ?? null,
+        },
+        call_info: {
+          call_id: call._id.toString(),
+          type: call.type,
+          status: newStatus,
+          ...(duration !== undefined && { duration }),
+        },
+      });
     });
 
     socket.on("call:ice-candidate", ({ call_id, to_user_id, candidate }) => {

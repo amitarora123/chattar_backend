@@ -7,6 +7,13 @@ export interface IMessageAttachment {
   file_name: string;
 }
 
+export interface ICallInfo {
+  call_id: Types.ObjectId;
+  type: "audio" | "video";
+  status: "missed" | "declined" | "ended";
+  duration?: number;
+}
+
 export interface IMessage extends Document {
   chat_id: Types.ObjectId;
   sender_id: Types.ObjectId;
@@ -15,6 +22,7 @@ export interface IMessage extends Document {
   is_edited: boolean;
   is_deleted: boolean;
   attachment?: IMessageAttachment;
+  call_info?: ICallInfo;
 }
 
 export interface IMessageReactions extends Document {
@@ -74,6 +82,20 @@ const messageAttachmentSchema = new Schema<IMessageAttachment>(
   },
 );
 
+const callInfoSchema = new Schema<ICallInfo>(
+  {
+    call_id: { type: Schema.Types.ObjectId, ref: "Call", required: true },
+    type: { type: String, enum: ["audio", "video"], required: true },
+    status: {
+      type: String,
+      enum: ["missed", "declined", "ended"],
+      required: true,
+    },
+    duration: { type: Number, required: false },
+  },
+  { _id: false },
+);
+
 const messageSchema = new Schema<IMessage>(
   {
     chat_id: {
@@ -107,6 +129,10 @@ const messageSchema = new Schema<IMessage>(
     },
     attachment: {
       type: messageAttachmentSchema,
+      required: false,
+    },
+    call_info: {
+      type: callInfoSchema,
       required: false,
     },
   },

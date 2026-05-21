@@ -2,6 +2,13 @@ import { User } from "./user.types";
 
 export type Sender = Pick<User, "_id" | "avatar_url" | "username">;
 
+export interface MessageCallInfo {
+  call_id: string;
+  type: "audio" | "video";
+  status: "missed" | "declined" | "ended";
+  duration?: number;
+}
+
 export interface Message {
   _id: string;
   chat_id: string;
@@ -14,6 +21,7 @@ export interface Message {
   is_deleted: boolean;
   seen: MessageSeen[];
   reply_to?: ReplyMessage | null;
+  call_info?: MessageCallInfo;
 }
 
 export interface MessageAttachment {
