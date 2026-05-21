@@ -3,3 +3,4 @@ import "./Contact";
 import "./Message";
 import "./Chat";
 import "./BlockedToken";
+import "./Status";

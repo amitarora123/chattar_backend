@@ -1,6 +1,24 @@
 import { Message, MessageReaction, MessageSeen } from "./message.types";
 import { Server as IOServer } from "socket.io";
 
+export interface StatusReactionPayload {
+  user_id: string;
+  emoji: string;
+  created_at: Date;
+}
+
+export interface StatusCommentPayload {
+  _id: string;
+  user_id: string;
+  text: string;
+  created_at: Date;
+}
+
+export interface StatusViewPayload {
+  user_id: string;
+  viewed_at: string;
+}
+
 export interface ServerToClientEvents {
   "presence:initial": (users: string[]) => void;
   "user:online": (userId: string) => void;
@@ -18,6 +36,25 @@ export interface ServerToClientEvents {
   "message:reaction": (data: {
     message_id: string;
     reactions: MessageReaction[];
+  }) => void;
+  "status:new": (data: {
+    status: Record<string, unknown>;
+    authorId: string;
+  }) => void;
+  "status:delete": (data: { status_id: string; authorId: string }) => void;
+  "status:react": (data: {
+    status_id: string;
+    reactions: StatusReactionPayload[];
+  }) => void;
+  "status:comment": (data: {
+    status_id: string;
+    comment: StatusCommentPayload;
+  }) => void;
+  "status:view": (data: { status_id: string; view: StatusViewPayload }) => void;
+  "status:poll_vote": (data: {
+    status_id: string;
+    option_index: number;
+    votes: string[];
   }) => void;
 }
 

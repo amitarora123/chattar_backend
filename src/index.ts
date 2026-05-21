@@ -14,7 +14,9 @@ import MessageRoutes from "./routes/message.routes";
 import CloudinaryRoutes from "./routes/cloudinary.routes";
 import PushRoutes from "./routes/push.routes";
 import LinkPreviewRoutes from "./routes/linkPreview.routes";
+import StatusRoutes from "./routes/status.routes";
 import cookieParser from "cookie-parser";
+import { Status } from "./models/Status";
 
 dotenv.config();
 const PORT = process.env.PORT || 8000;
@@ -50,11 +52,24 @@ app.use("/api/messages", MessageRoutes);
 app.use("/api/cloudinary", CloudinaryRoutes);
 app.use("/api/push", PushRoutes);
 app.use("/api/link-preview", LinkPreviewRoutes);
+app.use("/api/status", StatusRoutes);
 
 const httpServer = createServer(app);
 
 const io = initSocket(httpServer);
 registerSocketHandlers(io);
+
+// Cleanup expired non-archived statuses older than 7 days
+setInterval(
+  async () => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    await Status.deleteMany({
+      expires_at: { $lt: sevenDaysAgo },
+      is_archived: false,
+    }).catch(() => {});
+  },
+  24 * 60 * 60 * 1000,
+);
 
 connectDB()
   .then(() =>

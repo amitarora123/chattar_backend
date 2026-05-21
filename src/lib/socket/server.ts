@@ -66,6 +66,9 @@ export const registerSocketHandlers = (io: IOType): void => {
 
     onlineUsers.get(userId)!.add(socket.id);
 
+    // Personal room for direct notifications (status updates, etc.)
+    socket.join(`user:${userId}`);
+
     ChatParticipants.find({ user_id: userId, left_at: null }, { chat_id: 1 })
       .lean()
       .then((participations) => {
