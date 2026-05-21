@@ -19,6 +19,24 @@ export interface StatusViewPayload {
   viewed_at: string;
 }
 
+export interface RTCSdp {
+  type: "offer" | "answer" | "pranswer" | "rollback";
+  sdp?: string;
+}
+
+export interface RTCIceCandidateData {
+  candidate: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+}
+
+export interface CallUser {
+  _id: string;
+  username: string;
+  display_name?: string;
+  avatar_url?: string;
+}
+
 export interface ServerToClientEvents {
   "presence:initial": (users: string[]) => void;
   "user:online": (userId: string) => void;
@@ -56,6 +74,21 @@ export interface ServerToClientEvents {
     option_index: number;
     votes: string[];
   }) => void;
+  "call:incoming": (data: {
+    call_id: string;
+    from_user: CallUser;
+    chat_id: string;
+    type: "audio" | "video";
+    offer: RTCSdp;
+  }) => void;
+  "call:accepted": (data: { call_id: string; answer: RTCSdp }) => void;
+  "call:declined": (data: { call_id: string }) => void;
+  "call:ended": (data: { call_id: string }) => void;
+  "call:ice-candidate": (data: {
+    call_id: string;
+    candidate: RTCIceCandidateData;
+  }) => void;
+  "call:busy": (data: { call_id: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -95,6 +128,23 @@ export interface ClientToServerEvents {
     data: { room: string; message_id: string; reaction: string },
     callback: (response: { error?: string; data?: MessageReaction[] }) => void,
   ) => void;
+  "call:initiate": (
+    data: {
+      to_user_id: string;
+      chat_id: string;
+      type: "audio" | "video";
+      offer: RTCSdp;
+    },
+    ack: (res: { error?: string; call_id?: string }) => void,
+  ) => void;
+  "call:accept": (data: { call_id: string; answer: RTCSdp }) => void;
+  "call:decline": (data: { call_id: string }) => void;
+  "call:end": (data: { call_id: string }) => void;
+  "call:ice-candidate": (data: {
+    call_id: string;
+    to_user_id: string;
+    candidate: RTCIceCandidateData;
+  }) => void;
 }
 
 export type InterServerEvents = Record<string, never>;

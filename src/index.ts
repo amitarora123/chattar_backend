@@ -15,6 +15,7 @@ import CloudinaryRoutes from "./routes/cloudinary.routes";
 import PushRoutes from "./routes/push.routes";
 import LinkPreviewRoutes from "./routes/linkPreview.routes";
 import StatusRoutes from "./routes/status.routes";
+import CallRoutes from "./routes/call.routes";
 import cookieParser from "cookie-parser";
 import { Status } from "./models/Status";
 
@@ -53,6 +54,7 @@ app.use("/api/cloudinary", CloudinaryRoutes);
 app.use("/api/push", PushRoutes);
 app.use("/api/link-preview", LinkPreviewRoutes);
 app.use("/api/status", StatusRoutes);
+app.use("/api/calls", CallRoutes);
 
 const httpServer = createServer(app);
 

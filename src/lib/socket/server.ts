@@ -9,6 +9,8 @@ import {
 } from "@/types/socket.types";
 import { Chat, ChatParticipants } from "@/models/Chat";
 import { Message, MessageReaction, MessageView } from "@/models/Message";
+import { Call } from "@/models/Call";
+import User from "@/models/User";
 import {
   MessageReaction as MessageReactionShape,
   Sender,
@@ -377,6 +379,108 @@ export const registerSocketHandlers = (io: IOType): void => {
         const { message } = error as { message: string };
         ack({ error: message || "Failed to react" });
       }
+    });
+
+    // ── Call signaling ──────────────────────────────────────────────────
+    socket.on(
+      "call:initiate",
+      async ({ to_user_id, chat_id, type, offer }, ack) => {
+        try {
+          const [isCaller, isCallee] = await Promise.all([
+            ChatParticipants.exists({
+              chat_id,
+              user_id: userId,
+              left_at: null,
+            }),
+            ChatParticipants.exists({
+              chat_id,
+              user_id: to_user_id,
+              left_at: null,
+            }),
+          ]);
+          if (!isCaller || !isCallee)
+            return ack({ error: "Not a participant" });
+
+          const call = await Call.create({
+            caller_id: userId,
+            callee_id: to_user_id,
+            chat_id,
+            type,
+            status: "ringing",
+          });
+
+          const callerUser = await User.findById(userId)
+            .select("username display_name avatar_url")
+            .lean();
+
+          io.to(`user:${to_user_id}`).emit("call:incoming", {
+            call_id: call._id.toString(),
+            from_user: {
+              _id: userId,
+              username: callerUser?.username ?? "",
+              display_name: callerUser?.display_name ?? undefined,
+              avatar_url: callerUser?.avatar_url ?? undefined,
+            },
+            chat_id,
+            type,
+            offer,
+          });
+
+          ack({ call_id: call._id.toString() });
+        } catch {
+          ack({ error: "Failed to initiate call" });
+        }
+      },
+    );
+
+    socket.on("call:accept", async ({ call_id, answer }) => {
+      const call = await Call.findByIdAndUpdate(
+        call_id,
+        { status: "answered" },
+        { new: true },
+      );
+      if (!call) return;
+      io.to(`user:${call.caller_id.toString()}`).emit("call:accepted", {
+        call_id,
+        answer,
+      });
+    });
+
+    socket.on("call:decline", async ({ call_id }) => {
+      const call = await Call.findByIdAndUpdate(
+        call_id,
+        { status: "declined", ended_at: new Date() },
+        { new: true },
+      );
+      if (!call) return;
+      io.to(`user:${call.caller_id.toString()}`).emit("call:declined", {
+        call_id,
+      });
+    });
+
+    socket.on("call:end", async ({ call_id }) => {
+      const call = await Call.findById(call_id);
+      if (!call) return;
+      const duration = Math.floor(
+        (Date.now() - call.started_at.getTime()) / 1000,
+      );
+      await Call.findByIdAndUpdate(call_id, {
+        status: "ended",
+        ended_at: new Date(),
+        duration,
+      });
+      const otherUserId =
+        call.caller_id.toString() === userId
+          ? call.callee_id.toString()
+          : call.caller_id.toString();
+      io.to(`user:${otherUserId}`).emit("call:ended", { call_id });
+    });
+
+    socket.on("call:ice-candidate", ({ call_id, to_user_id, candidate }) => {
+      io.to(`user:${to_user_id}`).emit("call:ice-candidate", {
+        call_id,
+        candidate,
+      });
     });
 
     socket.on("disconnect", () => {

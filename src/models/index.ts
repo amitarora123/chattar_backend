@@ -4,3 +4,4 @@ import "./Message";
 import "./Chat";
 import "./BlockedToken";
 import "./Status";
+import "./Call";
