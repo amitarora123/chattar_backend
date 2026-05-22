@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
+import { RTCSdp } from "@/types/socket.types";
 
 export interface ICall extends Document {
   caller_id: Types.ObjectId;
@@ -6,6 +7,7 @@ export interface ICall extends Document {
   chat_id: Types.ObjectId;
   type: "audio" | "video";
   status: "ringing" | "answered" | "declined" | "missed" | "ended";
+  offer?: RTCSdp;
   started_at: Date;
   ended_at?: Date;
   duration?: number;
@@ -22,6 +24,7 @@ const callSchema = new Schema<ICall>(
       enum: ["ringing", "answered", "declined", "missed", "ended"],
       default: "ringing",
     },
+    offer: { type: Schema.Types.Mixed },
     started_at: { type: Date, default: Date.now },
     ended_at: { type: Date },
     duration: { type: Number },

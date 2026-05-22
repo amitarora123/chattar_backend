@@ -407,6 +407,7 @@ export const registerSocketHandlers = (io: IOType): void => {
             chat_id,
             type,
             status: "ringing",
+            offer,
           });
 
           const callerUser = await User.findById(userId)
