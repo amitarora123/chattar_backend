@@ -426,6 +426,21 @@ export const registerSocketHandlers = (io: IOType): void => {
             offer,
           });
 
+          sendPushToUser(to_user_id, {
+            title:
+              callerUser?.display_name ??
+              callerUser?.username ??
+              "Incoming call",
+            body: `Incoming ${type} call`,
+            icon: callerUser?.avatar_url ?? undefined,
+            data: {
+              call_id: call._id.toString(),
+              chat_id,
+              type,
+              action: "call:incoming",
+            },
+          }).catch(() => {});
+
           ack({ call_id: call._id.toString() });
         } catch {
           ack({ error: "Failed to initiate call" });

@@ -2,11 +2,18 @@ import { Request, Response } from "express";
 import webpush from "web-push";
 import { PushSubscription } from "@/models/PushSubscription";
 
-webpush.setVapidDetails(
-  process.env.VAPID_MAILTO!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
+let vapidInitialized = false;
+function getWebPush() {
+  if (!vapidInitialized) {
+    webpush.setVapidDetails(
+      process.env.VAPID_MAILTO!,
+      process.env.VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!,
+    );
+    vapidInitialized = true;
+  }
+  return webpush;
+}
 
 export const getVapidPublicKey = (_req: Request, res: Response) => {
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
@@ -59,7 +66,7 @@ export const sendPushToUser = async (
   await Promise.allSettled(
     subscriptions.map(async (sub) => {
       try {
-        await webpush.sendNotification(
+        await getWebPush().sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
           JSON.stringify(payload),
         );

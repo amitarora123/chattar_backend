@@ -210,7 +210,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
       .populate("sender_id", "username avatar_url")
       .populate({
         path: "reply_to_id",
-        select: "_id content is_deleted attachment sender_id",
+        select: "_id content is_deleted attachment sender_id call_info",
         populate: {
           path: "sender_id",
           select: "_id username avatar_url",
@@ -270,6 +270,7 @@ export const getChatMessages = async (req: Request, res: Response) => {
         is_edited: msg.is_edited,
         is_deleted: msg.is_deleted,
         attachment: msg.attachment,
+        call_info: msg.call_info,
         seen: viewsMap.get(messageId) ?? [],
         reactions,
         reply_to: msg.reply_to_id
